@@ -1,0 +1,309 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Material Design 3 Inspired Design System */
+@layer base {
+  :root {
+    /* Surface System - M3 Tonal Surfaces */
+    --background: 40 20% 96%;
+    --foreground: 220 30% 10%;
+
+    /* Board and Column Backgrounds */
+    --board: 0 0% 97%;
+    --column: 0 0% 96%;
+
+    --surface: 0 0% 100%;
+    --surface-dim: 40 15% 92%;
+    --surface-bright: 0 0% 100%;
+    --surface-container-lowest: 0 0% 100%;
+    --surface-container-low: 40 20% 98%;
+    --surface-container: 40 15% 95%;
+    --surface-container-high: 40 15% 93%;
+    --surface-container-highest: 40 15% 90%;
+
+    --on-surface: 220 30% 10%;
+    --on-surface-variant: 220 15% 40%;
+
+    /* Card */
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 10%;
+
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 10%;
+
+    /* Primary - Green */
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --primary-container: 160 60% 95%;
+    --on-primary-container: 160 84% 25%;
+
+    /* Secondary - Slate */
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 30% 20%;
+
+    /* Tertiary - Teal */
+    --tertiary: 175 70% 40%;
+    --tertiary-foreground: 0 0% 100%;
+
+    /* Muted */
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 15% 45%;
+
+    /* Accent */
+    --accent: 160 60% 95%;
+    --accent-foreground: 160 84% 30%;
+
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Priority Colors */
+    --priority-low: 160 84% 39%;
+    --priority-low-bg: 160 70% 92%;
+    --priority-medium: 38 92% 50%;
+    --priority-medium-bg: 38 92% 92%;
+    --priority-high: 0 84% 60%;
+    --priority-high-bg: 0 84% 92%;
+
+    /* Status Colors - Dot indicators */
+    --status-backlog: 220 10% 60%;
+    --status-todo: 45 93% 47%;
+    --status-in-progress: 217 91% 60%;
+    --status-delivered: 160 84% 39%;
+    --status-audit: 30 90% 55%;
+    --status-complete: 160 84% 39%;
+    --status-archived: 220 10% 60%;
+
+    /* Border & Input */
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 160 84% 39%;
+
+    /* Radius - M3 uses larger radii */
+    --radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+
+    /* Shadows - M3 Elevation */
+    --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.03);
+    --shadow: 0 1px 3px 0 hsl(220 30% 10% / 0.06), 0 1px 2px -1px hsl(220 30% 10% / 0.06);
+    --shadow-md: 0 4px 6px -1px hsl(220 30% 10% / 0.06), 0 2px 4px -2px hsl(220 30% 10% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(220 30% 10% / 0.06), 0 4px 6px -4px hsl(220 30% 10% / 0.06);
+    --shadow-xl: 0 20px 25px -5px hsl(220 30% 10% / 0.08), 0 8px 10px -6px hsl(220 30% 10% / 0.08);
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 30% 20%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 160 60% 96%;
+    --sidebar-accent-foreground: 160 84% 30%;
+    --sidebar-border: 220 15% 90%;
+    --sidebar-ring: 160 84% 39%;
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 220 15% 95%;
+
+    /* Board and Column Backgrounds - Dark Mode */
+    --board: 220 25% 10%;
+    --column: 220 25% 14%;
+
+    --surface: 220 25% 12%;
+    --surface-dim: 220 25% 6%;
+    --surface-bright: 220 20% 18%;
+    --surface-container-lowest: 220 25% 5%;
+    --surface-container-low: 220 25% 10%;
+    --surface-container: 220 25% 12%;
+    --surface-container-high: 220 25% 15%;
+    --surface-container-highest: 220 25% 18%;
+
+    --on-surface: 220 15% 95%;
+    --on-surface-variant: 220 15% 70%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 220 15% 95%;
+
+    --popover: 220 25% 12%;
+    --popover-foreground: 220 15% 95%;
+
+    --primary: 160 70% 50%;
+    --primary-foreground: 160 84% 10%;
+    --primary-container: 160 50% 20%;
+    --on-primary-container: 160 70% 85%;
+
+    --secondary: 220 20% 22%;
+    --secondary-foreground: 220 15% 90%;
+
+    --tertiary: 175 70% 50%;
+    --tertiary-foreground: 175 70% 10%;
+
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 15% 60%;
+
+    --accent: 160 50% 15%;
+    --accent-foreground: 160 70% 80%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --priority-low: 160 70% 45%;
+    --priority-low-bg: 160 50% 15%;
+    --priority-medium: 38 85% 55%;
+    --priority-medium-bg: 38 50% 15%;
+    --priority-high: 0 75% 55%;
+    --priority-high-bg: 0 50% 15%;
+
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 160 70% 50%;
+
+    --sidebar-background: 220 25% 10%;
+    --sidebar-foreground: 220 15% 90%;
+    --sidebar-primary: 160 70% 50%;
+    --sidebar-primary-foreground: 160 84% 10%;
+    --sidebar-accent: 160 50% 15%;
+    --sidebar-accent-foreground: 160 70% 80%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 160 70% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* M3 Surface Utilities */
+  .surface {
+    @apply bg-surface;
+  }
+  
+  .surface-container {
+    background-color: hsl(var(--surface-container));
+  }
+  
+  .surface-container-high {
+    background-color: hsl(var(--surface-container-high));
+  }
+
+  .surface-container-highest {
+    background-color: hsl(var(--surface-container-highest));
+  }
+
+  /* Elevation shadows */
+  .elevation-1 {
+    box-shadow: var(--shadow);
+  }
+  
+  .elevation-2 {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .elevation-3 {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Priority badges */
+  .priority-low {
+    @apply bg-[hsl(var(--priority-low-bg))] text-[hsl(var(--priority-low))] font-medium;
+  }
+
+  .priority-medium {
+    @apply bg-[hsl(var(--priority-medium-bg))] text-[hsl(var(--priority-medium))] font-medium;
+  }
+
+  .priority-high {
+    @apply bg-[hsl(var(--priority-high-bg))] text-[hsl(var(--priority-high))] font-medium;
+  }
+
+  /* Status dot colors */
+  .status-dot-backlog {
+    background-color: hsl(var(--status-backlog));
+  }
+
+  .status-dot-todo {
+    background-color: hsl(var(--status-todo));
+  }
+
+  .status-dot-in-progress {
+    background-color: hsl(var(--status-in-progress));
+  }
+
+  .status-dot-delivered {
+    background-color: hsl(var(--status-delivered));
+  }
+
+  .status-dot-audit {
+    background-color: hsl(var(--status-audit));
+  }
+
+  .status-dot-complete {
+    background-color: hsl(var(--status-complete));
+  }
+
+  .status-dot-archived {
+    background-color: hsl(var(--status-archived));
+  }
+
+  /* Progress bar colors */
+  .progress-bar-backlog {
+    background-color: hsl(var(--status-backlog));
+  }
+
+  .progress-bar-todo {
+    background-color: hsl(var(--status-todo));
+  }
+
+  .progress-bar-in-progress {
+    background-color: hsl(var(--status-in-progress));
+  }
+
+  .progress-bar-delivered {
+    background-color: hsl(var(--status-delivered));
+  }
+
+  .progress-bar-audit {
+    background-color: hsl(var(--status-audit));
+  }
+
+  .progress-bar-complete {
+    background-color: hsl(var(--status-complete));
+  }
+
+  .progress-bar-archived {
+    background-color: hsl(var(--status-archived));
+  }
+
+  /* Smooth scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.4);
+  }
+}

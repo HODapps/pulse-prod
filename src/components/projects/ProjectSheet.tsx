@@ -1,0 +1,387 @@
+import { useEffect, useState } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { format } from 'date-fns';
+import { CalendarIcon, Plus, X, Trash2 } from 'lucide-react';
+import { Project, ProjectStatus, Priority, ALL_STATUSES, STATUS_CONFIG, PRIORITY_CONFIG } from '@/types/project';
+import { useProjectStore } from '@/store/projectStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+
+const projectSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string(),
+  status: z.enum(['backlog', 'todo', 'in-progress', 'delivered', 'audit', 'complete', 'archived']),
+  priority: z.enum(['low', 'medium', 'high']),
+  assigneeId: z.string().min(1, 'Assignee is required'),
+  startDate: z.string().optional(),
+  dueDate: z.string().optional(),
+  subTasks: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    completed: z.boolean(),
+  })),
+});
+
+type ProjectFormData = z.infer<typeof projectSchema>;
+
+interface ProjectSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  project?: Project | null;
+  defaultStatus?: ProjectStatus;
+}
+
+export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: ProjectSheetProps) {
+  const { teamMembers, currentUserId, addProject, updateProject } = useProjectStore();
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [newSubTask, setNewSubTask] = useState('');
+
+  const currentUser = teamMembers.find((m) => m.id === currentUserId);
+  const isEditing = !!project;
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      status: 'backlog',
+      priority: 'medium',
+      assigneeId: currentUserId,
+      startDate: '',
+      dueDate: '',
+      subTasks: [],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'subTasks',
+  });
+
+  useEffect(() => {
+    if (project) {
+      reset({
+        title: project.title,
+        description: project.description,
+        status: project.status,
+        priority: project.priority,
+        assigneeId: project.assigneeId,
+        startDate: project.startDate,
+        dueDate: project.dueDate,
+        subTasks: project.subTasks,
+      });
+      setStartDate(project.startDate ? new Date(project.startDate) : undefined);
+      setDueDate(project.dueDate ? new Date(project.dueDate) : undefined);
+    } else {
+      reset({
+        title: '',
+        description: '',
+        status: defaultStatus || 'backlog',
+        priority: 'medium',
+        assigneeId: currentUserId,
+        startDate: '',
+        dueDate: '',
+        subTasks: [],
+      });
+      setStartDate(undefined);
+      setDueDate(undefined);
+    }
+  }, [project, reset, currentUserId, defaultStatus]);
+
+  const onSubmit = (data: ProjectFormData) => {
+    const projectData = {
+      title: data.title,
+      description: data.description,
+      status: data.status,
+      priority: data.priority,
+      assigneeId: data.assigneeId,
+      subTasks: data.subTasks.map(st => ({
+        id: st.id,
+        title: st.title,
+        completed: st.completed,
+      })),
+      startDate: startDate ? format(startDate, 'yyyy-MM-dd') : '',
+      dueDate: dueDate ? format(dueDate, 'yyyy-MM-dd') : '',
+    };
+
+    if (isEditing && project) {
+      updateProject(project.id, projectData);
+    } else {
+      addProject({
+        ...projectData,
+        createdById: currentUserId,
+      });
+    }
+    onOpenChange(false);
+  };
+
+  const handleAddSubTask = () => {
+    if (newSubTask.trim()) {
+      append({
+        id: Date.now().toString(),
+        title: newSubTask.trim(),
+        completed: false,
+      });
+      setNewSubTask('');
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{isEditing ? 'Edit Project' : 'New Project'}</SheetTitle>
+          <SheetDescription>
+            {isEditing ? 'Update the project details below.' : 'Fill in the details to create a new project.'}
+          </SheetDescription>
+        </SheetHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title">Title *</Label>
+            <Input
+              id="title"
+              {...register('title')}
+              placeholder="Enter project title"
+              className={errors.title ? 'border-destructive' : ''}
+            />
+            {errors.title && (
+              <p className="text-sm text-destructive">{errors.title.message}</p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              {...register('description')}
+              placeholder="Describe the project..."
+              rows={3}
+            />
+          </div>
+
+          {/* Status & Priority */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={watch('status')}
+                onValueChange={(value) => setValue('status', value as ProjectStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_STATUSES.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {STATUS_CONFIG[status].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <Select
+                value={watch('priority')}
+                onValueChange={(value) => setValue('priority', value as Priority)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(['low', 'medium', 'high'] as Priority[]).map((priority) => (
+                    <SelectItem key={priority} value={priority}>
+                      {PRIORITY_CONFIG[priority].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Assignee */}
+          <div className="space-y-2">
+            <Label>Assignee *</Label>
+            <Select
+              value={watch('assigneeId')}
+              onValueChange={(value) => setValue('assigneeId', value)}
+            >
+              <SelectTrigger className={errors.assigneeId ? 'border-destructive' : ''}>
+                <SelectValue placeholder="Select assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                {teamMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.assigneeId && (
+              <p className="text-sm text-destructive">{errors.assigneeId.message}</p>
+            )}
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, 'MMM d, yyyy') : 'Pick date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, 'MMM d, yyyy') : 'Pick date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Sub-tasks */}
+          <div className="space-y-3">
+            <Label>Sub-tasks</Label>
+            
+            <div className="flex gap-2">
+              <Input
+                value={newSubTask}
+                onChange={(e) => setNewSubTask(e.target.value)}
+                placeholder="Add a sub-task"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubTask();
+                  }
+                }}
+              />
+              <Button type="button" variant="outline" size="icon" onClick={handleAddSubTask}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {fields.length > 0 && (
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                {fields.map((field, index) => {
+                  const subTasks = watch('subTasks');
+                  const isCompleted = subTasks[index]?.completed || false;
+                  
+                  return (
+                    <div key={field.id} className="flex items-center gap-3">
+                      <Checkbox
+                        checked={isCompleted}
+                        onCheckedChange={(checked) => {
+                          setValue(`subTasks.${index}.completed`, checked === true);
+                        }}
+                        className="shrink-0"
+                      />
+                      <span className={`flex-1 text-sm ${isCompleted ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                        {field.title}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => remove(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1">
+              {isEditing ? 'Save Changes' : 'Create Project'}
+            </Button>
+          </div>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
