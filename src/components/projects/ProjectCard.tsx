@@ -184,7 +184,7 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
                     key={task.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      canEdit && toggleSubTask(project.id, task.id);
+                      canEdit && toggleSubTask(project.id, task.id).catch(console.error);
                     }}
                     disabled={!canEdit}
                     className={cn(

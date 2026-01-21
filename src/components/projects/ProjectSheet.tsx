@@ -159,7 +159,7 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
     }
   }, [project, reset, currentUserId, defaultStatus]);
 
-  const onSubmit = (data: ProjectFormData) => {
+  const onSubmit = async (data: ProjectFormData) => {
     const projectData = {
       title: data.title,
       description: data.description,
@@ -175,15 +175,20 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
       dueDate: dueDate ? format(dueDate, 'yyyy-MM-dd') : '',
     };
 
-    if (isEditing && project) {
-      updateProject(project.id, projectData);
-    } else {
-      addProject({
-        ...projectData,
-        createdById: currentUserId,
-      });
+    try {
+      if (isEditing && project) {
+        await updateProject(project.id, projectData);
+      } else {
+        await addProject({
+          ...projectData,
+          createdById: currentUserId,
+        });
+      }
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      // You could add a toast notification here
     }
-    onOpenChange(false);
   };
 
   const handleAddSubTask = () => {

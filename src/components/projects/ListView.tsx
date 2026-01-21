@@ -193,7 +193,7 @@ export function ListView({ onEditProject }: ListViewProps) {
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                      onClick={() => deleteProject(project.id)}
+                                      onClick={() => deleteProject(project.id).catch(console.error)}
                                       className="text-destructive focus:text-destructive"
                                     >
                                       <Trash2 className="mr-2 h-4 w-4" />

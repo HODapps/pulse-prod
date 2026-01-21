@@ -12,22 +12,57 @@ interface ProjectStore {
   collapsedColumns: ProjectStatus[];
   expandedCards: string[];
   teamTitle: string;
+  isLoadingProjects: boolean;
 
   // Actions
   setSearchQuery: (query: string) => void;
   setViewMode: (mode: 'kanban' | 'list') => void;
   toggleColumnCollapse: (status: ProjectStatus) => void;
   toggleCardExpand: (projectId: string) => void;
-  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateProject: (id: string, updates: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
-  moveProject: (projectId: string, newStatus: ProjectStatus) => void;
-  toggleSubTask: (projectId: string, subTaskId: string) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  moveProject: (projectId: string, newStatus: ProjectStatus) => Promise<void>;
+  toggleSubTask: (projectId: string, subTaskId: string) => Promise<void>;
   setCurrentUser: (userId: string) => void;
   removeTeamMember: (memberId: string) => void;
   setTeamTitle: (title: string) => void;
   addSampleProjects: () => void;
   loadTeamMembers: () => Promise<void>;
+  loadProjects: () => Promise<void>;
+}
+
+// Transform database project to frontend format
+function transformProjectFromDB(dbProject: any): Project {
+  return {
+    id: dbProject.id,
+    title: dbProject.title,
+    description: dbProject.description || '',
+    status: dbProject.status,
+    priority: dbProject.priority,
+    assigneeId: dbProject.assignee_id || '',
+    createdById: dbProject.created_by_id || '',
+    startDate: dbProject.start_date || '',
+    dueDate: dbProject.due_date || '',
+    subTasks: dbProject.sub_tasks || [],
+    createdAt: dbProject.created_at.split('T')[0],
+    updatedAt: dbProject.updated_at.split('T')[0],
+  };
+}
+
+// Transform frontend project to database format
+function transformProjectToDB(project: Partial<Project>) {
+  return {
+    title: project.title,
+    description: project.description,
+    status: project.status,
+    priority: project.priority,
+    assignee_id: project.assigneeId || null,
+    created_by_id: project.createdById || null,
+    start_date: project.startDate || null,
+    due_date: project.dueDate || null,
+    sub_tasks: project.subTasks || [],
+  };
 }
 
 export const useProjectStore = create<ProjectStore>()(
@@ -41,6 +76,7 @@ export const useProjectStore = create<ProjectStore>()(
       collapsedColumns: [],
       expandedCards: [],
       teamTitle: '',
+      isLoadingProjects: false,
 
       setSearchQuery: (query) => set({ searchQuery: query }),
 
@@ -58,49 +94,150 @@ export const useProjectStore = create<ProjectStore>()(
           : [...state.expandedCards, projectId],
       })),
 
-      addProject: (projectData) => {
-        const newProject: Project = {
-          ...projectData,
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString().split('T')[0],
-          updatedAt: new Date().toISOString().split('T')[0],
-        };
-        set((state) => ({ projects: [...state.projects, newProject] }));
+      loadProjects: async () => {
+        set({ isLoadingProjects: true });
+        try {
+          const { data, error } = await supabase
+            .from('projects')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          if (data) {
+            const transformedProjects = data.map(transformProjectFromDB);
+            set({ projects: transformedProjects });
+          }
+        } catch (error) {
+          console.error('Error loading projects:', error);
+        } finally {
+          set({ isLoadingProjects: false });
+        }
       },
 
-      updateProject: (id, updates) => set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === id
-            ? { ...p, ...updates, updatedAt: new Date().toISOString().split('T')[0] }
-            : p
-        ),
-      })),
+      addProject: async (projectData) => {
+        try {
+          const dbProject = transformProjectToDB(projectData as Project);
 
-      deleteProject: (id) => set((state) => ({
-        projects: state.projects.filter((p) => p.id !== id),
-      })),
+          const { data, error } = await supabase
+            .from('projects')
+            .insert(dbProject)
+            .select()
+            .single();
 
-      moveProject: (projectId, newStatus) => set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? { ...p, status: newStatus, updatedAt: new Date().toISOString().split('T')[0] }
-            : p
-        ),
-      })),
+          if (error) throw error;
 
-      toggleSubTask: (projectId, subTaskId) => set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? {
-                ...p,
-                subTasks: p.subTasks.map((st) =>
-                  st.id === subTaskId ? { ...st, completed: !st.completed } : st
-                ),
-                updatedAt: new Date().toISOString().split('T')[0],
-              }
-            : p
-        ),
-      })),
+          if (data) {
+            const newProject = transformProjectFromDB(data);
+            set((state) => ({ projects: [...state.projects, newProject] }));
+          }
+        } catch (error) {
+          console.error('Error adding project:', error);
+          throw error;
+        }
+      },
+
+      updateProject: async (id, updates) => {
+        try {
+          const dbUpdates = transformProjectToDB(updates);
+
+          const { data, error} = await supabase
+            .from('projects')
+            .update(dbUpdates)
+            .eq('id', id)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            const updatedProject = transformProjectFromDB(data);
+            set((state) => ({
+              projects: state.projects.map((p) =>
+                p.id === id ? updatedProject : p
+              ),
+            }));
+          }
+        } catch (error) {
+          console.error('Error updating project:', error);
+          throw error;
+        }
+      },
+
+      deleteProject: async (id) => {
+        try {
+          const { error } = await supabase
+            .from('projects')
+            .delete()
+            .eq('id', id);
+
+          if (error) throw error;
+
+          set((state) => ({
+            projects: state.projects.filter((p) => p.id !== id),
+          }));
+        } catch (error) {
+          console.error('Error deleting project:', error);
+          throw error;
+        }
+      },
+
+      moveProject: async (projectId, newStatus) => {
+        try {
+          const { data, error } = await supabase
+            .from('projects')
+            .update({ status: newStatus })
+            .eq('id', projectId)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            const updatedProject = transformProjectFromDB(data);
+            set((state) => ({
+              projects: state.projects.map((p) =>
+                p.id === projectId ? updatedProject : p
+              ),
+            }));
+          }
+        } catch (error) {
+          console.error('Error moving project:', error);
+          throw error;
+        }
+      },
+
+      toggleSubTask: async (projectId, subTaskId) => {
+        try {
+          const project = get().projects.find((p) => p.id === projectId);
+          if (!project) return;
+
+          const updatedSubTasks = project.subTasks.map((st) =>
+            st.id === subTaskId ? { ...st, completed: !st.completed } : st
+          );
+
+          const { data, error } = await supabase
+            .from('projects')
+            .update({ sub_tasks: updatedSubTasks })
+            .eq('id', projectId)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          if (data) {
+            const updatedProject = transformProjectFromDB(data);
+            set((state) => ({
+              projects: state.projects.map((p) =>
+                p.id === projectId ? updatedProject : p
+              ),
+            }));
+          }
+        } catch (error) {
+          console.error('Error toggling subtask:', error);
+          throw error;
+        }
+      },
 
       setCurrentUser: (userId) => set({ currentUserId: userId }),
 
@@ -143,6 +280,13 @@ export const useProjectStore = create<ProjectStore>()(
     }),
     {
       name: 'project-store',
+      // Only persist UI preferences, not data
+      partialize: (state) => ({
+        viewMode: state.viewMode,
+        collapsedColumns: state.collapsedColumns,
+        expandedCards: state.expandedCards,
+        teamTitle: state.teamTitle,
+      }),
     }
   )
 );

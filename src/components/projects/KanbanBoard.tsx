@@ -90,7 +90,7 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
     setActiveId(event.active.id as string);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
 
@@ -101,14 +101,14 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
 
     // Check if dropped on a column
     if (ALL_STATUSES.includes(overId as ProjectStatus)) {
-      moveProject(projectId, overId as ProjectStatus);
+      await moveProject(projectId, overId as ProjectStatus);
       return;
     }
 
     // Check if dropped on another card
     const overProject = projects.find((p) => p.id === overId);
     if (overProject && overProject.id !== projectId) {
-      moveProject(projectId, overProject.status);
+      await moveProject(projectId, overProject.status);
     }
   };
 

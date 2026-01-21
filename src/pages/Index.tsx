@@ -15,7 +15,7 @@ import { LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { viewMode, setViewMode, setCurrentUser, projects, loadTeamMembers } = useProjectStore();
+  const { viewMode, setViewMode, setCurrentUser, projects, loadTeamMembers, loadProjects } = useProjectStore();
   const { user } = useAuthStore();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -29,13 +29,14 @@ const Index = () => {
   // Track user activity
   useActivityTracker();
 
-  // Sync current user from auth store to project store and load team members
+  // Sync current user from auth store to project store and load data
   useEffect(() => {
     if (user) {
       setCurrentUser(user.id);
       loadTeamMembers();
+      loadProjects();
     }
-  }, [user, setCurrentUser, loadTeamMembers]);
+  }, [user, setCurrentUser, loadTeamMembers, loadProjects]);
 
   // Check if admin user needs to complete board setup
   useEffect(() => {
