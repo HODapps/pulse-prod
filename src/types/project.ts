@@ -15,13 +15,15 @@ export interface SubTask {
   completed: boolean;
 }
 
+export type UserRole = 'admin' | 'viewer' | 'editor';
+
 export interface TeamMember {
   id: string;
   name: string;
   email: string;
   avatar?: string;
   avatarColor?: string;
-  role: 'admin' | 'designer';
+  role: UserRole;
   status?: 'pending' | 'active' | 'inactive';
   last_active_at?: string | null;
 }

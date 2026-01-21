@@ -20,7 +20,7 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
   
   const assignee = teamMembers.find((m) => m.id === project.assigneeId);
   const currentUser = teamMembers.find((m) => m.id === currentUserId);
-  const canEdit = currentUser?.role === 'admin' || project.createdById === currentUserId;
+  const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'editor' || project.createdById === currentUserId;
 
   const completedTasks = project.subTasks.filter((t) => t.completed).length;
   const totalTasks = project.subTasks.length;

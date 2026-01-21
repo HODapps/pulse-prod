@@ -96,7 +96,7 @@ export function ListView({ onEditProject }: ListViewProps) {
                 {/* Projects */}
                 <AnimatePresence>
                   {memberProjects.map((project, index) => {
-                    const canEdit = currentUser?.role === 'admin' || project.createdById === currentUserId;
+                    const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'editor' || project.createdById === currentUserId;
                     const isExpanded = expandedCards.includes(project.id);
                     const completedTasks = project.subTasks.filter((t) => t.completed).length;
                     const totalTasks = project.subTasks.length;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Project, ProjectStatus, TeamMember, SubTask } from '@/types/project';
+import { Project, ProjectStatus, TeamMember, SubTask, UserRole } from '@/types/project';
 import { supabase } from '@/lib/supabase';
 
 interface ProjectStore {
@@ -131,7 +131,7 @@ export const useProjectStore = create<ProjectStore>()(
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role as 'admin' | 'designer',
+                role: user.role as UserRole,
                 avatarColor: user.avatar_color,
               }))
             });

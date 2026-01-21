@@ -1,9 +1,10 @@
 import { supabase } from '@/lib/supabase';
 import { nanoid } from 'nanoid';
+import { UserRole } from '@/types/project';
 
 export interface InviteUserData {
   email: string;
-  role: 'admin' | 'designer';
+  role: UserRole;
 }
 
 export async function sendInvitation(data: InviteUserData) {

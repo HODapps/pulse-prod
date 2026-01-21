@@ -14,6 +14,7 @@ import { sendInvitation } from '@/lib/api/invitations';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { UserRole } from '@/types/project';
 
 interface SettingsSheetProps {
   open: boolean;
@@ -24,7 +25,7 @@ interface TeamMember {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'designer';
+  role: UserRole;
   avatar_color: string;
   status: 'pending' | 'active' | 'inactive';
   last_active_at: string | null;
@@ -54,7 +55,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [boardSettings, setBoardSettings] = useState<BoardSettings | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'admin' | 'designer'>('designer');
+  const [inviteRole, setInviteRole] = useState<UserRole>('editor');
   const [isInviting, setIsInviting] = useState(false);
   const [selectedColor, setSelectedColor] = useState(PROJECT_COLORS[0].value);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -177,7 +178,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       });
 
       setInviteEmail('');
-      setInviteRole('designer');
+      setInviteRole('editor');
 
       // Refresh team members list
       fetchTeamMembers();
@@ -239,7 +240,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     handleTeamTitleChange(e.target.value);
   };
 
-  const handleRoleChange = async (memberId: string, newRole: 'admin' | 'designer') => {
+  const handleRoleChange = async (memberId: string, newRole: UserRole) => {
     if (user?.role !== 'admin') {
       toast({
         title: "Permission denied",
@@ -250,18 +251,28 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     }
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('users')
         .update({ role: newRole })
         .eq('id', memberId);
+
+      if (error) throw error;
 
       // Update local state
       setTeamMembers(prev =>
         prev.map(m => m.id === memberId ? { ...m, role: newRole } : m)
       );
 
-      triggerAutoSave('Member role updated');
+      // Also reload team members to ensure projectStore is synced
+      const { loadTeamMembers } = useProjectStore.getState();
+      await loadTeamMembers();
+
+      toast({
+        title: "Role updated",
+        description: `Member role changed to ${newRole}`,
+      });
     } catch (error) {
+      console.error('Error updating role:', error);
       toast({
         title: "Failed to update role",
         description: error instanceof Error ? error.message : 'Unknown error',
@@ -417,13 +428,29 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                     disabled={isInviting}
                   />
                   <div className="flex gap-2">
-                    <Select value={inviteRole} onValueChange={(value: 'admin' | 'designer') => setInviteRole(value)} disabled={isInviting}>
+                    <Select value={inviteRole} onValueChange={(value: UserRole) => setInviteRole(value)} disabled={isInviting}>
                       <SelectTrigger className="h-10 flex-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="designer">Designer</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="viewer">
+                          <div className="flex items-center gap-1.5">
+                            <Eye className="h-3.5 w-3.5" />
+                            Viewer
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="editor">
+                          <div className="flex items-center gap-1.5">
+                            <Edit className="h-3.5 w-3.5" />
+                            Editor
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          <div className="flex items-center gap-1.5">
+                            <Shield className="h-3.5 w-3.5" />
+                            Admin
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <Button onClick={handleInvite} size="sm" className="h-10 px-4" disabled={isInviting || !inviteEmail}>
@@ -515,16 +542,22 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                         <>
                           <Select
                             value={member.role}
-                            onValueChange={(value: 'admin' | 'designer') => handleRoleChange(member.id, value)}
+                            onValueChange={(value: UserRole) => handleRoleChange(member.id, value)}
                           >
                             <SelectTrigger className="h-8 w-28 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="designer">
+                              <SelectItem value="viewer">
+                                <div className="flex items-center gap-1.5">
+                                  <Eye className="h-3.5 w-3.5" />
+                                  Viewer
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="editor">
                                 <div className="flex items-center gap-1.5">
                                   <Edit className="h-3.5 w-3.5" />
-                                  Designer
+                                  Editor
                                 </div>
                               </SelectItem>
                               <SelectItem value="admin">
@@ -550,10 +583,15 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                           <Crown className="h-4 w-4" />
                           <span>Admin</span>
                         </div>
-                      ) : (
+                      ) : member.role === 'editor' ? (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <Edit className="h-4 w-4" />
-                          <span>Designer</span>
+                          <span>Editor</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Eye className="h-4 w-4" />
+                          <span>Viewer</span>
                         </div>
                       )}
                     </div>
