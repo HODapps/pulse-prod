@@ -146,7 +146,16 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
                     <span>{Math.round(progress)}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                    <div 
+                    <div
+                      className={cn("h-full transition-all duration-300", progressClass)}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Date and Assignee - Always visible */}
         <div className="flex items-center justify-between pt-1 gap-2">
@@ -161,18 +170,6 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
 
           {assignee && (
             <Avatar className={cn("h-7 w-7 shrink-0", assignee.avatarColor)}>
-              <AvatarFallback className={cn("text-xs font-medium text-white", assignee.avatarColor)}>
-                {assignee.name.split(' ').map((n) => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-          )}
-        </div>
-              </span>
-            )}
-          </div>
-
-          {assignee && (
-            <Avatar className={cn("h-7 w-7", assignee.avatarColor)}>
               <AvatarFallback className={cn("text-xs font-medium text-white", assignee.avatarColor)}>
                 {assignee.name.split(' ').map((n) => n[0]).join('')}
               </AvatarFallback>
