@@ -15,7 +15,7 @@ import { LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { viewMode, setViewMode, setCurrentUser, projects, loadTeamMembers, loadProjects } = useProjectStore();
+  const { viewMode, setViewMode, setCurrentUser, projects, loadTeamMembers, loadProjects, subscribeToChanges } = useProjectStore();
   const { user } = useAuthStore();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -37,6 +37,16 @@ const Index = () => {
       loadProjects();
     }
   }, [user, setCurrentUser, loadTeamMembers, loadProjects]);
+
+  // Subscribe to real-time changes
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = subscribeToChanges();
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [user, subscribeToChanges]);
 
   // Check if admin user needs to complete board setup
   useEffect(() => {

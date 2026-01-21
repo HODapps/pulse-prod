@@ -30,6 +30,7 @@ interface ProjectStore {
   addSampleProjects: () => void;
   loadTeamMembers: () => Promise<void>;
   loadProjects: () => Promise<void>;
+  subscribeToChanges: () => () => void;
 }
 
 // Transform database project to frontend format
@@ -276,6 +277,59 @@ export const useProjectStore = create<ProjectStore>()(
         } catch (error) {
           console.error('Error loading team members:', error);
         }
+      },
+
+      subscribeToChanges: () => {
+        // Subscribe to projects table changes
+        const projectsChannel = supabase
+          .channel('projects-changes')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'projects' },
+            (payload) => {
+              if (payload.eventType === 'INSERT') {
+                const newProject = transformProjectFromDB(payload.new);
+                set((state) => {
+                  // Only add if not already in state
+                  if (!state.projects.find(p => p.id === newProject.id)) {
+                    return { projects: [...state.projects, newProject] };
+                  }
+                  return state;
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                const updatedProject = transformProjectFromDB(payload.new);
+                set((state) => ({
+                  projects: state.projects.map((p) =>
+                    p.id === updatedProject.id ? updatedProject : p
+                  ),
+                }));
+              } else if (payload.eventType === 'DELETE') {
+                set((state) => ({
+                  projects: state.projects.filter((p) => p.id !== payload.old.id),
+                }));
+              }
+            }
+          )
+          .subscribe();
+
+        // Subscribe to users table changes
+        const usersChannel = supabase
+          .channel('users-changes')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'users' },
+            () => {
+              // Reload team members when users change
+              get().loadTeamMembers();
+            }
+          )
+          .subscribe();
+
+        // Return cleanup function
+        return () => {
+          supabase.removeChannel(projectsChannel);
+          supabase.removeChannel(usersChannel);
+        };
       },
     }),
     {
