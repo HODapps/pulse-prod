@@ -5,27 +5,81 @@ import { ListView } from '@/components/projects/ListView';
 import { ProjectSheet } from '@/components/projects/ProjectSheet';
 import { SettingsSheet } from '@/components/projects/SettingsSheet';
 import { ProfileSheet } from '@/components/auth/ProfileSheet';
+import { BoardSetupWizard } from '@/components/onboarding/BoardSetupWizard';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { supabase } from '@/lib/supabase';
 import { Project, ProjectStatus } from '@/types/project';
 import { LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { viewMode, setViewMode, setCurrentUser } = useProjectStore();
+  const { viewMode, setViewMode, setCurrentUser, projects, loadTeamMembers } = useProjectStore();
   const { user } = useAuthStore();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [setupWizardOpen, setSetupWizardOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [defaultStatus, setDefaultStatus] = useState<ProjectStatus | undefined>(undefined);
+  const [hasBoardSettings, setHasBoardSettings] = useState(true);
+  const [isCheckingSettings, setIsCheckingSettings] = useState(true);
 
-  // Sync current user from auth store to project store
+  // Track user activity
+  useActivityTracker();
+
+  // Sync current user from auth store to project store and load team members
   useEffect(() => {
     if (user) {
       setCurrentUser(user.id);
+      loadTeamMembers();
     }
-  }, [user, setCurrentUser]);
+  }, [user, setCurrentUser, loadTeamMembers]);
+
+  // Check if admin user needs to complete board setup
+  useEffect(() => {
+    const checkBoardSettings = async () => {
+      if (!user || user.role !== 'admin') {
+        setIsCheckingSettings(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('board_settings')
+          .select('id')
+          .limit(1)
+          .single();
+
+        if (error || !data) {
+          // No board settings found, show setup wizard
+          setHasBoardSettings(false);
+          setSetupWizardOpen(true);
+        } else {
+          setHasBoardSettings(true);
+        }
+      } catch (error) {
+        console.error('Error checking board settings:', error);
+      } finally {
+        setIsCheckingSettings(false);
+      }
+    };
+
+    checkBoardSettings();
+  }, [user]);
+
+  // Listen for openSettings event from empty state
+  useEffect(() => {
+    const handleOpenSettings = () => setSettingsOpen(true);
+    window.addEventListener('openSettings', handleOpenSettings);
+    return () => window.removeEventListener('openSettings', handleOpenSettings);
+  }, []);
+
+  const handleSetupComplete = () => {
+    setHasBoardSettings(true);
+    setSetupWizardOpen(false);
+  };
 
   const handleNewProject = (status?: ProjectStatus) => {
     setEditingProject(null);
@@ -104,6 +158,13 @@ const Index = () => {
       <ProfileSheet
         open={profileOpen}
         onOpenChange={setProfileOpen}
+      />
+
+      {/* Board Setup Wizard */}
+      <BoardSetupWizard
+        open={setupWizardOpen}
+        onOpenChange={setSetupWizardOpen}
+        onComplete={handleSetupComplete}
       />
     </div>
   );

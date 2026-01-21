@@ -1,72 +1,116 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, LoginCredentials, AuthState } from '@/types/auth';
+import { supabase } from '@/lib/supabase';
 
 interface AuthStore extends AuthState {
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
-  checkAuth: () => void;
-  updateProfile: (updates: Partial<User>) => void;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
 }
-
-// Sample team members for authentication (must match projectStore)
-const TEAM_MEMBERS: User[] = [
-  { id: '1', name: 'Alex Chen', email: 'alex@design.co', role: 'admin', avatarColor: 'bg-emerald-500' },
-  { id: '2', name: 'Sarah Miller', email: 'sarah@design.co', role: 'designer', avatarColor: 'bg-pink-400' },
-  { id: '3', name: 'James Wilson', email: 'james@design.co', role: 'designer', avatarColor: 'bg-blue-400' },
-  { id: '4', name: 'Emma Davis', email: 'emma@design.co', role: 'designer', avatarColor: 'bg-amber-400' },
-  { id: '5', name: 'Michael Brown', email: 'michael@design.co', role: 'designer', avatarColor: 'bg-violet-400' },
-  { id: '6', name: 'Lisa Johnson', email: 'lisa@design.co', role: 'designer', avatarColor: 'bg-cyan-400' },
-  { id: '7', name: 'David Lee', email: 'david@design.co', role: 'designer', avatarColor: 'bg-rose-400' },
-  { id: '8', name: 'Anna Martinez', email: 'anna@design.co', role: 'designer', avatarColor: 'bg-teal-400' },
-  { id: '9', name: 'Chris Taylor', email: 'chris@design.co', role: 'designer', avatarColor: 'bg-orange-400' },
-  { id: '10', name: 'Sophie Anderson', email: 'sophie@design.co', role: 'designer', avatarColor: 'bg-indigo-400' },
-];
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true,
+
+      checkAuth: async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+
+          if (session?.user) {
+            // Fetch user profile from database
+            const { data: profile, error } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (error) {
+              console.error('Error fetching profile:', error);
+              set({ user: null, isAuthenticated: false, isLoading: false });
+              return;
+            }
+
+            if (profile) {
+              set({
+                user: profile as User,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            }
+          } else {
+            set({ user: null, isAuthenticated: false, isLoading: false });
+          }
+        } catch (error) {
+          console.error('Auth check error:', error);
+          set({ user: null, isAuthenticated: false, isLoading: false });
+        }
+      },
 
       login: async (credentials: LoginCredentials) => {
         set({ isLoading: true });
 
         try {
-          // Simulate API call - in production, this would be a real API endpoint
-          const { email, password } = credentials;
-
-          // For demo purposes: validate against hardcoded team members
-          const user = TEAM_MEMBERS.find((member) => member.email.toLowerCase() === email.toLowerCase());
-
-          if (!user) {
-            set({ isLoading: false });
-            return { success: false, error: 'Invalid email or password' };
-          }
-
-          // In production, verify password hash against backend
-          // For demo: accept "password123" for all users
-          if (password !== 'password123') {
-            set({ isLoading: false });
-            return { success: false, error: 'Invalid email or password' };
-          }
-
-          // Successful login
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: credentials.email,
+            password: credentials.password,
           });
 
-          return { success: true };
+          if (error) {
+            set({ isLoading: false });
+            return { success: false, error: error.message };
+          }
+
+          if (data.user) {
+            // Fetch user profile from database
+            const { data: profile, error: profileError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+              set({ isLoading: false });
+              return { success: false, error: 'Failed to fetch user profile' };
+            }
+
+            if (profile) {
+              // Update user status to active on login
+              await supabase
+                .from('users')
+                .update({
+                  status: 'active',
+                  last_active_at: new Date().toISOString()
+                })
+                .eq('id', data.user.id);
+
+              set({
+                user: { ...profile, status: 'active' } as User,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+              return { success: true };
+            }
+          }
+
+          set({ isLoading: false });
+          return { success: false, error: 'Failed to fetch user profile' };
         } catch (error) {
           set({ isLoading: false });
-          return { success: false, error: 'Login failed. Please try again.' };
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Login failed. Please try again.',
+          };
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        await supabase.auth.signOut();
         set({
           user: null,
           isAuthenticated: false,
@@ -74,18 +118,29 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
-      checkAuth: () => {
+      updateProfile: async (updates: Partial<User>) => {
         const { user } = get();
-        if (user) {
-          set({ isAuthenticated: true });
-        }
-      },
+        if (!user) return;
 
-      updateProfile: (updates: Partial<User>) => {
-        const { user } = get();
-        if (user) {
-          const updatedUser = { ...user, ...updates };
-          set({ user: updatedUser });
+        try {
+          const { data, error } = await supabase
+            .from('users')
+            .update(updates)
+            .eq('id', user.id)
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Profile update error:', error);
+            throw error;
+          }
+
+          if (data) {
+            set({ user: data as User });
+          }
+        } catch (error) {
+          console.error('Profile update error:', error);
+          throw error;
         }
       },
     }),
@@ -98,3 +153,17 @@ export const useAuthStore = create<AuthStore>()(
     }
   )
 );
+
+// Initialize auth state check when the store is created
+useAuthStore.getState().checkAuth();
+
+// Listen for auth state changes from Supabase
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    useAuthStore.getState().checkAuth();
+  } else if (event === 'SIGNED_OUT') {
+    useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+  } else if (event === 'TOKEN_REFRESHED') {
+    useAuthStore.getState().checkAuth();
+  }
+});

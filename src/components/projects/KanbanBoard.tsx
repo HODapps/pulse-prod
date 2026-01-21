@@ -19,7 +19,9 @@ import {
 import { ChevronDown, Plus } from 'lucide-react';
 import { Project, ProjectStatus, ALL_STATUSES, STATUS_CONFIG } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
+import { useAuthStore } from '@/store/authStore';
 import { ProjectCard } from './ProjectCard';
+import { EmptyState } from '../onboarding/EmptyState';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +49,9 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
   const { projects, searchQuery, collapsedColumns, toggleColumnCollapse, moveProject } = useProjectStore();
+  const { user } = useAuthStore();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -107,6 +111,21 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
       moveProject(projectId, overProject.status);
     }
   };
+
+  // Show empty state when there are no projects
+  if (projects.length === 0) {
+    return (
+      <EmptyState
+        onCreateProject={() => onNewProject()}
+        onInviteTeam={() => {
+          // This will be handled by Index component opening settings
+          const event = new CustomEvent('openSettings');
+          window.dispatchEvent(event);
+        }}
+        isAdmin={user?.role === 'admin'}
+      />
+    );
+  }
 
   return (
     <DndContext

@@ -22,6 +22,8 @@ export interface TeamMember {
   avatar?: string;
   avatarColor?: string;
   role: 'admin' | 'designer';
+  status?: 'pending' | 'active' | 'inactive';
+  last_active_at?: string | null;
 }
 
 export interface Project {

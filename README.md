@@ -1,73 +1,175 @@
-# Welcome to your Lovable project
+# Project Pulse - UX Project Management Platform
 
-## Project info
+A collaborative project management tool designed for UX/design teams. Track projects from backlog to production with Kanban boards, real-time collaboration, and team management features.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+✅ **Kanban Board** - Drag-and-drop project cards across 7 workflow stages
+✅ **List View** - Alternative table view for project management
+✅ **Real-Time Collaboration** - Multi-user support with live updates
+✅ **Team Management** - Invite team members with role-based access (Admin/Designer)
+✅ **Project Details** - Comprehensive project sheets with subtasks, assignments, and dates
+✅ **User Profiles** - Profile management with avatar upload and password change
+✅ **Authentication** - Secure authentication with Supabase
+✅ **Email Invitations** - Invite team members via email with signup links
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite
+- **UI**: shadcn/ui, Radix UI, Tailwind CSS
+- **State Management**: Zustand with persistence
+- **Backend**: Supabase (PostgreSQL, Auth, Realtime)
+- **Forms**: React Hook Form + Zod validation
+- **Drag & Drop**: @dnd-kit
+- **Deployment**: Vercel (auto-deploy on push to GitHub)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Quick Start
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm
+- Supabase account ([https://supabase.com](https://supabase.com))
+- GitHub account (for deployment)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 1. Clone & Install
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+git clone https://github.com/HODapps/pulse-prod.git
+cd pulse-prod
+npm install
+```
 
-Follow these steps:
+### 2. Set Up Supabase
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+**📖 See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed setup instructions.**
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Quick version:
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. Get Supabase credentials (URL + anon key)
+2. Create `.env.local` file with credentials
+3. Run `supabase-schema.sql` in Supabase SQL Editor
+4. Create admin user in Supabase Dashboard
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 3. Run Locally
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open [http://localhost:5173](http://localhost:5173)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 4. Deploy to Vercel
 
-**Use GitHub Codespaces**
+```bash
+./deploy.sh "Your commit message"
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Add environment variables to Vercel:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-## What technologies are used for this project?
+## Usage
 
-This project is built with:
+### Login
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Use the admin credentials you created in Supabase.
 
-## How can I deploy this project?
+### Invite Team Members
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+1. Click your avatar → **Settings**
+2. Go to **Invite Collaborators**
+3. Enter email and select role (Designer/Admin)
+4. Click **Invite**
+5. Share the signup link (automatically copied to clipboard)
 
-## Can I connect a custom domain to my Lovable project?
+### Manage Projects
 
-Yes, you can!
+- **Create**: Click "+ New Project" button
+- **Edit**: Click any project card
+- **Move**: Drag cards between columns
+- **Delete**: Open project → Delete button
+- **Assign**: Select team member in project details
+- **Subtasks**: Add/toggle subtasks in project sheet
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Profile Management
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Click your avatar → **Profile** to:
+- Update name and email
+- Upload profile photo
+- Change password
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── auth/              # Authentication components
+│   ├── layout/            # Layout components
+│   └── projects/          # Project components
+├── lib/
+│   ├── supabase.ts       # Supabase client
+│   └── api/              # API functions
+├── store/
+│   ├── authStore.ts      # Authentication state
+│   └── projectStore.ts   # Project/team state
+├── types/                # TypeScript types
+└── pages/                # Page components
+```
+
+## Documentation
+
+- **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** - Detailed Supabase setup guide
+- **[LOGIN_SYSTEM.md](./LOGIN_SYSTEM.md)** - Authentication documentation
+- **[PROFILE_FEATURE.md](./PROFILE_FEATURE.md)** - Profile management guide
+
+## Development Scripts
+
+```bash
+npm run dev          # Start dev server (localhost:5173)
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+./deploy.sh "msg"    # Commit and push to GitHub
+```
+
+## Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `VITE_SUPABASE_URL` | Supabase project URL | `https://xxx.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key | `eyJ...` |
+
+See `.env.example` for template.
+
+## Troubleshooting
+
+### "Missing Supabase environment variables"
+
+**Solution**: Make sure `.env.local` exists in project root with correct values. Restart dev server.
+
+### Can't log in
+
+**Solution**:
+- Verify admin user was created in Supabase
+- Check that "Auto Confirm User" was enabled
+- Ensure database schema ran successfully
+
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for more troubleshooting.
+
+## Security
+
+🔒 `.env.local` is gitignored - never commit credentials
+🔒 Use anon key in frontend (never service role key)
+🔒 Row Level Security enforced at database level
+🔒 Passwords hashed via Supabase Auth
+🔒 HTTPS enforced by Vercel
+
+## License
+
+Private - All Rights Reserved
+
+---
+
+**Repository**: [https://github.com/HODapps/pulse-prod](https://github.com/HODapps/pulse-prod)
+
+Built with ❤️ using React, Supabase, and modern web technologies.

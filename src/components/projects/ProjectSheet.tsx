@@ -4,8 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, X, Trash2 } from 'lucide-react';
-import { Project, ProjectStatus, Priority, ALL_STATUSES, STATUS_CONFIG, PRIORITY_CONFIG } from '@/types/project';
+import { Project, ProjectStatus, Priority, ALL_STATUSES, STATUS_CONFIG, PRIORITY_CONFIG, TeamMember } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -58,13 +59,48 @@ interface ProjectSheetProps {
 }
 
 export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: ProjectSheetProps) {
-  const { teamMembers, currentUserId, addProject, updateProject } = useProjectStore();
+  const { currentUserId, addProject, updateProject } = useProjectStore();
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [newSubTask, setNewSubTask] = useState('');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   const currentUser = teamMembers.find((m) => m.id === currentUserId);
   const isEditing = !!project;
+
+  // Fetch team members from database
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      setIsLoadingMembers(true);
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, name, email, role, avatar_color')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        if (data) {
+          setTeamMembers(data.map(user => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role as 'admin' | 'designer',
+            avatarColor: user.avatar_color,
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching team members:', error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    if (open) {
+      fetchTeamMembers();
+    }
+  }, [open]);
 
   const {
     register,

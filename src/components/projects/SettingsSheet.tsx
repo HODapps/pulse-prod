@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Copy, Check, Mail, Crown, Eye, Edit, Shield, Trash2 } from 'lucide-react';
+import { Settings, Copy, Check, Mail, Crown, Eye, Edit, Shield, Trash2, Circle } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,32 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useProjectStore } from '@/store/projectStore';
+import { useAuthStore } from '@/store/authStore';
+import { sendInvitation } from '@/lib/api/invitations';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface SettingsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'designer';
+  avatar_color: string;
+  status: 'pending' | 'active' | 'inactive';
+  last_active_at: string | null;
+}
+
+interface BoardSettings {
+  id: string;
+  board_name: string;
+  team_title: string;
+  project_color: string;
 }
 
 const PROJECT_COLORS = [
@@ -27,26 +47,79 @@ const PROJECT_COLORS = [
 ];
 
 export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
-  const { teamMembers, removeTeamMember, teamTitle, setTeamTitle } = useProjectStore();
+  const { teamTitle, setTeamTitle } = useProjectStore();
+  const { user } = useAuthStore();
   const { toast } = useToast();
+
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [boardSettings, setBoardSettings] = useState<BoardSettings | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'designer'>('designer');
+  const [isInviting, setIsInviting] = useState(false);
   const [selectedColor, setSelectedColor] = useState(PROJECT_COLORS[0].value);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const [memberAccess, setMemberAccess] = useState<Record<string, string>>({});
-  
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const shareLink = typeof window !== 'undefined' ? window.location.href : '';
 
-  // Initialize member access levels
+  // Fetch board settings
+  const fetchBoardSettings = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('board_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (data) {
+        setBoardSettings(data);
+        setSelectedColor(data.project_color);
+        setTeamTitle(data.team_title);
+        document.documentElement.style.setProperty('--primary', data.project_color);
+      }
+    } catch (error) {
+      console.error('Error fetching board settings:', error);
+    }
+  }, [user, setTeamTitle]);
+
+  // Fetch team members from database
+  const fetchTeamMembers = useCallback(async () => {
+    setIsLoadingMembers(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, role, avatar_color, status, last_active_at')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        setTeamMembers(data as TeamMember[]);
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      toast({
+        title: 'Failed to load team members',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [toast]);
+
+  // Load data when sheet opens
   useEffect(() => {
-    const initialAccess: Record<string, string> = {};
-    teamMembers.forEach((member) => {
-      initialAccess[member.id] = member.role === 'admin' ? 'admin' : 'editor';
-    });
-    setMemberAccess(initialAccess);
-  }, [teamMembers]);
+    if (open) {
+      fetchTeamMembers();
+      fetchBoardSettings();
+    }
+  }, [open, fetchTeamMembers, fetchBoardSettings]);
 
   // Auto-save function with debounce
   const triggerAutoSave = useCallback((message: string) => {
@@ -71,13 +144,51 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     });
   };
 
-  const handleInvite = () => {
-    if (inviteEmail) {
+  const handleInvite = async () => {
+    if (!inviteEmail) {
       toast({
-        title: "Invitation sent",
-        description: `Invitation sent to ${inviteEmail}`,
+        title: "Email required",
+        description: "Please enter an email address",
+        variant: "destructive",
       });
+      return;
+    }
+
+    if (!user || user.role !== 'admin') {
+      toast({
+        title: "Permission denied",
+        description: "Only admins can send invitations",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsInviting(true);
+
+    try {
+      const { message } = await sendInvitation({
+        email: inviteEmail,
+        role: inviteRole,
+      });
+
+      toast({
+        title: "Invitation sent!",
+        description: message || `Magic link sent to ${inviteEmail}`,
+      });
+
       setInviteEmail('');
+      setInviteRole('designer');
+
+      // Refresh team members list
+      fetchTeamMembers();
+    } catch (error) {
+      toast({
+        title: "Failed to send invitation",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    } finally {
+      setIsInviting(false);
     }
   };
 
@@ -87,55 +198,136 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     triggerAutoSave(`Theme changed to ${checked ? 'dark' : 'light'} mode`);
   };
 
-  const handleColorChange = (colorValue: string) => {
+  const handleColorChange = async (colorValue: string) => {
     setSelectedColor(colorValue);
-    // Apply the color to the primary CSS variable
     document.documentElement.style.setProperty('--primary', colorValue);
-    triggerAutoSave('Project color updated');
+
+    // Update database if admin
+    if (user?.role === 'admin' && boardSettings) {
+      try {
+        await supabase
+          .from('board_settings')
+          .update({ project_color: colorValue })
+          .eq('id', boardSettings.id);
+
+        triggerAutoSave('Project color updated');
+      } catch (error) {
+        console.error('Error updating color:', error);
+      }
+    }
   };
 
-  const handleTeamTitleChange = (value: string) => {
+  const handleTeamTitleChange = async (value: string) => {
     setTeamTitle(value);
-    triggerAutoSave('Team title updated');
+
+    // Update database if admin
+    if (user?.role === 'admin' && boardSettings) {
+      try {
+        await supabase
+          .from('board_settings')
+          .update({ team_title: value })
+          .eq('id', boardSettings.id);
+
+        triggerAutoSave('Team title updated');
+      } catch (error) {
+        console.error('Error updating team title:', error);
+      }
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleTeamTitleChange(e.target.value);
   };
 
-  const handleAccessChange = (memberId: string, access: string) => {
-    setMemberAccess((prev) => ({ ...prev, [memberId]: access }));
-    triggerAutoSave('Member access updated');
-  };
+  const handleRoleChange = async (memberId: string, newRole: 'admin' | 'designer') => {
+    if (user?.role !== 'admin') {
+      toast({
+        title: "Permission denied",
+        description: "Only admins can change roles",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleDeleteMember = (memberId: string, memberName: string) => {
-    removeTeamMember(memberId);
-    toast({
-      title: "Member removed",
-      description: `${memberName} has been removed from the team.`,
-      variant: "destructive",
-    });
-  };
+    try {
+      await supabase
+        .from('users')
+        .update({ role: newRole })
+        .eq('id', memberId);
 
-  const getAccessIcon = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return <Crown className="h-4 w-4 text-primary" />;
-      case 'editor':
-        return <Edit className="h-4 w-4 text-muted-foreground" />;
-      default:
-        return <Eye className="h-4 w-4 text-muted-foreground" />;
+      // Update local state
+      setTeamMembers(prev =>
+        prev.map(m => m.id === memberId ? { ...m, role: newRole } : m)
+      );
+
+      triggerAutoSave('Member role updated');
+    } catch (error) {
+      toast({
+        title: "Failed to update role",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
     }
   };
 
-  const getAccessLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Admin';
-      case 'editor':
-        return 'Can Edit';
-      default:
-        return 'View Only';
+  const handleDeleteMember = async (memberId: string, memberName: string) => {
+    if (user?.role !== 'admin') {
+      toast({
+        title: "Permission denied",
+        description: "Only admins can remove members",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (memberId === user.id) {
+      toast({
+        title: "Cannot remove yourself",
+        description: "You cannot remove your own account",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Delete from auth.users (will cascade to public.users)
+      const { error } = await supabase.auth.admin.deleteUser(memberId);
+
+      if (error) throw error;
+
+      setTeamMembers(prev => prev.filter(m => m.id !== memberId));
+
+      toast({
+        title: "Member removed",
+        description: `${memberName} has been removed from the team.`,
+        variant: "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to remove member",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusIndicator = (member: TeamMember) => {
+    if (member.status === 'active') {
+      return <Circle className="h-3 w-3 fill-green-500 text-green-500" />;
+    } else if (member.status === 'pending') {
+      return <Circle className="h-3 w-3 fill-yellow-500 text-yellow-500" />;
+    } else {
+      return <Circle className="h-3 w-3 fill-gray-400 text-gray-400" />;
+    }
+  };
+
+  const getStatusText = (member: TeamMember) => {
+    if (member.status === 'active') {
+      return 'Active';
+    } else if (member.status === 'pending') {
+      return 'Pending';
+    } else {
+      return 'Inactive';
     }
   };
 
@@ -153,40 +345,48 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
         </SheetHeader>
 
         <div className="space-y-6">
-          {/* Team Title */}
-          <div className="space-y-3">
-            <Label htmlFor="team-title" className="text-sm font-medium">Team Title</Label>
-            <Input
-              id="team-title"
-              value={teamTitle}
-              onChange={handleInputChange}
-              placeholder="Enter team title"
-              className="h-10"
-            />
-          </div>
-
-          <Separator />
-
-          {/* Project Colors */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Project Color</Label>
-            <div className="flex flex-wrap gap-3">
-              {PROJECT_COLORS.map((color) => (
-                <button
-                  key={color.value}
-                  onClick={() => handleColorChange(color.value)}
-                  className={cn(
-                    "w-8 h-8 rounded-full transition-all ring-offset-2 ring-offset-background",
-                    selectedColor === color.value && "ring-2 ring-foreground"
-                  )}
-                  style={{ backgroundColor: color.css }}
-                  aria-label={`Select ${color.name} color`}
+          {/* Team Title (Admin only) */}
+          {user?.role === 'admin' && (
+            <>
+              <div className="space-y-3">
+                <Label htmlFor="team-title" className="text-sm font-medium">Team Title</Label>
+                <Input
+                  id="team-title"
+                  value={teamTitle}
+                  onChange={handleInputChange}
+                  placeholder="Enter team title"
+                  className="h-10"
                 />
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
+
+          {/* Project Colors (Admin only) */}
+          {user?.role === 'admin' && (
+            <>
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Project Color</Label>
+                <div className="flex flex-wrap gap-3">
+                  {PROJECT_COLORS.map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => handleColorChange(color.value)}
+                      className={cn(
+                        "w-8 h-8 rounded-full transition-all ring-offset-2 ring-offset-background",
+                        selectedColor === color.value && "ring-2 ring-foreground"
+                      )}
+                      style={{ backgroundColor: color.css }}
+                      aria-label={`Select ${color.name} color`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+            </>
+          )}
 
           {/* Theme Toggle */}
           <div className="flex items-center justify-between">
@@ -202,25 +402,53 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
 
           <Separator />
 
-          {/* Invite Collaborators */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Invite Collaborators</Label>
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="Enter email address"
-                className="h-10 flex-1"
-              />
-              <Button onClick={handleInvite} size="sm" className="h-10 px-4">
-                <Mail className="h-4 w-4 mr-2" />
-                Invite
-              </Button>
-            </div>
-          </div>
+          {/* Invite Collaborators (Admin only) */}
+          {user?.role === 'admin' && (
+            <>
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Invite Collaborators</Label>
+                <div className="space-y-2">
+                  <Input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="Enter email address"
+                    className="h-10"
+                    disabled={isInviting}
+                  />
+                  <div className="flex gap-2">
+                    <Select value={inviteRole} onValueChange={(value: 'admin' | 'designer') => setInviteRole(value)} disabled={isInviting}>
+                      <SelectTrigger className="h-10 flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="designer">Designer</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleInvite} size="sm" className="h-10 px-4" disabled={isInviting || !inviteEmail}>
+                      {isInviting ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent mr-2" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Invite
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A magic link will be sent to the email address
+                  </p>
+                </div>
+              </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Share Link */}
           <div className="space-y-3">
@@ -245,80 +473,94 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
 
           {/* Team Members & Access */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Team Members & Access</Label>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {teamMembers.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar className={cn("h-8 w-8", member.avatarColor)}>
-                      <AvatarFallback className={cn("text-xs font-medium text-white", member.avatarColor)}>
-                        {member.name.split(' ').map((n) => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium flex items-center gap-1.5">
-                        {member.name}
-                        {member.role === 'admin' && (
-                          <span className="text-xs text-primary font-normal">(Owner)</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{member.name.toLowerCase().replace(' ', '.')}@team.com</p>
+            <Label className="text-sm font-medium">Team Members</Label>
+            {isLoadingMembers ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : teamMembers.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No team members yet. Invite collaborators to get started.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {teamMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className={cn("h-8 w-8", member.avatar_color)}>
+                        <AvatarFallback className={cn("text-xs font-medium text-white", member.avatar_color)}>
+                          {member.name.split(' ').map((n) => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          {member.name}
+                          {member.role === 'admin' && (
+                            <span className="text-xs text-primary font-normal">(Admin)</span>
+                          )}
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          {getStatusIndicator(member)}
+                          <p className="text-xs text-muted-foreground">
+                            {getStatusText(member)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {user?.role === 'admin' && member.id !== user.id ? (
+                        <>
+                          <Select
+                            value={member.role}
+                            onValueChange={(value: 'admin' | 'designer') => handleRoleChange(member.id, value)}
+                          >
+                            <SelectTrigger className="h-8 w-28 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="designer">
+                                <div className="flex items-center gap-1.5">
+                                  <Edit className="h-3.5 w-3.5" />
+                                  Designer
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="admin">
+                                <div className="flex items-center gap-1.5">
+                                  <Shield className="h-3.5 w-3.5" />
+                                  Admin
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteMember(member.id, member.name)}
+                            aria-label={`Remove ${member.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : member.role === 'admin' ? (
+                        <div className="flex items-center gap-1.5 text-xs text-primary">
+                          <Crown className="h-4 w-4" />
+                          <span>Admin</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Edit className="h-4 w-4" />
+                          <span>Designer</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {member.role === 'admin' ? (
-                      <div className="flex items-center gap-1.5 text-xs text-primary">
-                        {getAccessIcon('admin')}
-                        <span>{getAccessLabel('admin')}</span>
-                      </div>
-                    ) : (
-                      <>
-                        <Select 
-                          value={memberAccess[member.id] || 'editor'}
-                          onValueChange={(value) => handleAccessChange(member.id, value)}
-                        >
-                          <SelectTrigger className="h-8 w-28 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="viewer">
-                              <div className="flex items-center gap-1.5">
-                                <Eye className="h-3.5 w-3.5" />
-                                View Only
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="editor">
-                              <div className="flex items-center gap-1.5">
-                                <Edit className="h-3.5 w-3.5" />
-                                Can Edit
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="admin">
-                              <div className="flex items-center gap-1.5">
-                                <Shield className="h-3.5 w-3.5" />
-                                Admin
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteMember(member.id, member.name)}
-                          aria-label={`Remove ${member.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>

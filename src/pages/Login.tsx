@@ -147,20 +147,6 @@ const Login = () => {
                 )}
               </Button>
             </form>
-
-            {/* Demo Credentials Info */}
-            <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
-              <p className="text-sm font-medium text-foreground mb-2">Demo Credentials</p>
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <p>
-                  <span className="font-medium">Email:</span> alex@design.co (Admin) or any team
-                  member email
-                </p>
-                <p>
-                  <span className="font-medium">Password:</span> password123
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
