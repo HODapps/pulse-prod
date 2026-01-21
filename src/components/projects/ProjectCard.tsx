@@ -17,10 +17,20 @@ interface ProjectCardProps {
 export function ProjectCard({ project, onEdit, compact = false }: ProjectCardProps) {
   const { teamMembers, expandedCards, toggleCardExpand, toggleSubTask, currentUserId } = useProjectStore();
   const isExpanded = expandedCards.includes(project.id);
-  
+
   const assignee = teamMembers.find((m) => m.id === project.assigneeId);
   const currentUser = teamMembers.find((m) => m.id === currentUserId);
   const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'editor' || project.createdById === currentUserId;
+
+  // Debug logging (remove after testing)
+  if (project.assigneeId && !assignee) {
+    console.log('Assignee not found:', {
+      projectTitle: project.title,
+      assigneeId: project.assigneeId,
+      teamMembersCount: teamMembers.length,
+      teamMemberIds: teamMembers.map(m => m.id)
+    });
+  }
 
   const completedTasks = project.subTasks.filter((t) => t.completed).length;
   const totalTasks = project.subTasks.length;
@@ -149,13 +159,15 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
 
         {/* Date and Assignee - Always visible */}
         <div className="flex items-center justify-between pt-1">
-          {formatDateRange() && (
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              {formatDateRange()}
-            </span>
-          )}
-          
+          <div className="flex-1">
+            {formatDateRange() && (
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
+                {formatDateRange()}
+              </span>
+            )}
+          </div>
+
           {assignee && (
             <Avatar className={cn("h-7 w-7", assignee.avatarColor)}>
               <AvatarFallback className={cn("text-xs font-medium text-white", assignee.avatarColor)}>

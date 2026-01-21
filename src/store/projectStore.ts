@@ -45,8 +45,8 @@ function transformProjectFromDB(dbProject: any): Project {
     startDate: dbProject.start_date || '',
     dueDate: dbProject.due_date || '',
     subTasks: dbProject.sub_tasks || [],
-    createdAt: dbProject.created_at.split('T')[0],
-    updatedAt: dbProject.updated_at.split('T')[0],
+    createdAt: dbProject.created_at ? dbProject.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+    updatedAt: dbProject.updated_at ? dbProject.updated_at.split('T')[0] : new Date().toISOString().split('T')[0],
   };
 }
 
