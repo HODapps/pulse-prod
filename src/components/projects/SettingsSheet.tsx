@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ interface TeamMember {
   name: string;
   email: string;
   role: UserRole;
+  avatar?: string;
   avatar_color: string;
   status: 'pending' | 'active' | 'inactive';
   last_active_at: string | null;
@@ -108,7 +109,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       console.log('Fetching team members...');
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, role, avatar_color, status, last_active_at')
+        .select('id, name, email, role, avatar, avatar_color, status, last_active_at')
         .or('status.is.null,status.neq.inactive')
         .order('created_at', { ascending: true });
 
@@ -585,8 +586,12 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar className={cn("h-8 w-8", member.avatar_color)}>
-                        <AvatarFallback className={cn("text-xs font-medium text-white", member.avatar_color)}>
+                      <Avatar className="h-8 w-8">
+                        {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
+                        <AvatarFallback
+                          className="text-xs font-medium text-white"
+                          style={{ backgroundColor: `hsl(${selectedColor})` }}
+                        >
                           {member.name.split(' ').map((n) => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
