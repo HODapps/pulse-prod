@@ -74,7 +74,10 @@ export function Header({ onNewProject, onOpenSettings, onOpenProfile }: HeaderPr
                     className="h-8 w-8 border-2 border-surface"
                   >
                     {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
-                    <AvatarFallback className={cn("text-xs font-medium text-white", member.avatarColor)}>
+                    <AvatarFallback
+                      className="text-xs font-medium text-white"
+                      style={{ backgroundColor: 'hsl(var(--primary))' }}
+                    >
                       {member.name.split(' ').map((n) => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
@@ -119,7 +122,10 @@ export function Header({ onNewProject, onOpenSettings, onOpenProfile }: HeaderPr
                   >
                     <Avatar className="h-7 w-7">
                       {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
-                      <AvatarFallback className={cn("text-xs font-medium text-white", user.avatarColor)}>
+                      <AvatarFallback
+                        className="text-xs font-medium text-white"
+                        style={{ backgroundColor: 'hsl(var(--primary))' }}
+                      >
                         {user.name.split(' ').map((n) => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
