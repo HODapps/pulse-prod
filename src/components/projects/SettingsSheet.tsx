@@ -105,13 +105,16 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const fetchTeamMembers = useCallback(async () => {
     setIsLoadingMembers(true);
     try {
+      console.log('Fetching team members...');
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email, role, avatar_color, status, last_active_at')
-        .neq('status', 'inactive')
+        .or('status.is.null,status.neq.inactive')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
+
+      console.log('Fetched team members:', data);
 
       if (data) {
         setTeamMembers(data as TeamMember[]);
@@ -326,17 +329,28 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
 
     setIsDeleting(true);
     try {
-      console.log('Deleting user from Supabase:', memberToDelete.id);
+      console.log('Marking user as inactive in Supabase:', memberToDelete.id);
 
-      // Delete from users table (this will cascade delete related data)
+      // First, update any projects assigned to this user to unassign them
+      const { error: projectError } = await supabase
+        .from('projects')
+        .update({ assignee_id: null })
+        .eq('assignee_id', memberToDelete.id);
+
+      if (projectError) {
+        console.error('Error updating projects:', projectError);
+        throw projectError;
+      }
+
+      // Mark user as inactive (soft delete)
       const { error } = await supabase
         .from('users')
-        .delete()
+        .update({ status: 'inactive' })
         .eq('id', memberToDelete.id);
 
       if (error) throw error;
 
-      console.log('User deleted successfully');
+      console.log('User marked as inactive successfully');
 
       // Refresh the team members list
       await fetchTeamMembers();
@@ -354,7 +368,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       setShowDeleteDialog(false);
       setMemberToDelete(null);
     } catch (error) {
-      console.error('Error deleting member:', error);
+      console.error('Error removing member:', error);
       toast({
         title: "Failed to remove member",
         description: error instanceof Error ? error.message : 'Unknown error',

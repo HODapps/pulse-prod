@@ -258,13 +258,16 @@ export const useProjectStore = create<ProjectStore>()(
 
       loadTeamMembers: async () => {
         try {
+          console.log('Loading team members in projectStore...');
           const { data, error } = await supabase
             .from('users')
-            .select('id, name, email, role, avatar, avatar_color')
-            .neq('status', 'inactive')
+            .select('id, name, email, role, avatar, avatar_color, status')
+            .or('status.is.null,status.neq.inactive')
             .order('name', { ascending: true });
 
           if (error) throw error;
+
+          console.log('Loaded team members:', data);
 
           if (data) {
             set({
