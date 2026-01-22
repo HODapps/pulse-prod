@@ -1,22 +1,20 @@
 -- Fix role constraints to match current role system
 -- The database was using old roles (admin, designer) but the app uses (admin, editor, viewer)
 
--- Fix invitations table role constraint
-ALTER TABLE public.invitations
-DROP CONSTRAINT IF EXISTS invitations_role_check;
-
-ALTER TABLE public.invitations
-ADD CONSTRAINT invitations_role_check
-CHECK (role IN ('admin', 'editor', 'viewer'));
-
--- Update the default value for invitations
-ALTER TABLE public.invitations
-ALTER COLUMN role SET DEFAULT 'editor';
-
--- Update any existing 'designer' invitations to 'editor'
+-- STEP 1: Update any existing 'designer' invitations to 'editor' BEFORE changing constraint
 UPDATE public.invitations
 SET role = 'editor'
 WHERE role = 'designer';
 
--- Note: Users table role constraint should also be updated separately if needed
--- However, we're keeping existing user roles intact for now
+-- STEP 2: Drop the old constraint
+ALTER TABLE public.invitations
+DROP CONSTRAINT IF EXISTS invitations_role_check;
+
+-- STEP 3: Add the new constraint with correct roles
+ALTER TABLE public.invitations
+ADD CONSTRAINT invitations_role_check
+CHECK (role IN ('admin', 'editor', 'viewer'));
+
+-- STEP 4: Update the default value for invitations
+ALTER TABLE public.invitations
+ALTER COLUMN role SET DEFAULT 'editor';
