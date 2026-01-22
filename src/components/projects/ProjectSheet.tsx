@@ -20,6 +20,16 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -60,12 +70,14 @@ interface ProjectSheetProps {
 }
 
 export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: ProjectSheetProps) {
-  const { currentUserId, addProject, updateProject } = useProjectStore();
+  const { currentUserId, addProject, updateProject, deleteProject } = useProjectStore();
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [newSubTask, setNewSubTask] = useState('');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const currentUser = teamMembers.find((m) => m.id === currentUserId);
   const isEditing = !!project;
@@ -216,6 +228,24 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
         completed: false,
       });
       setNewSubTask('');
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!project) return;
+
+    setIsDeleting(true);
+    try {
+      console.log('Deleting project:', project.id);
+      await deleteProject(project.id);
+      console.log('Project deleted successfully');
+      setShowDeleteDialog(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      // You could add a toast notification here
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -454,6 +484,17 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
+            {isEditing && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            )}
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
@@ -463,6 +504,29 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
           </div>
         </form>
       </SheetContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the project
+              <span className="font-semibold"> "{project?.title}"</span> and all its data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Project'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
