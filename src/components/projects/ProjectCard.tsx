@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Project, PRIORITY_CONFIG, STATUS_CONFIG } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -169,7 +169,8 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
           )}
 
           {assignee && (
-            <Avatar className={cn("h-7 w-7 shrink-0", assignee.avatarColor)}>
+            <Avatar className="h-7 w-7 shrink-0">
+              {assignee.avatar && <AvatarImage src={assignee.avatar} alt={assignee.name} />}
               <AvatarFallback className={cn("text-xs font-medium text-white", assignee.avatarColor)}>
                 {assignee.name.split(' ').map((n) => n[0]).join('')}
               </AvatarFallback>

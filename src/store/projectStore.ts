@@ -258,7 +258,7 @@ export const useProjectStore = create<ProjectStore>()(
         try {
           const { data, error } = await supabase
             .from('users')
-            .select('id, name, email, role, avatar_color')
+            .select('id, name, email, role, avatar, avatar_color')
             .order('name', { ascending: true });
 
           if (error) throw error;
@@ -270,6 +270,7 @@ export const useProjectStore = create<ProjectStore>()(
                 name: user.name,
                 email: user.email,
                 role: user.role as UserRole,
+                avatar: user.avatar || undefined,
                 avatarColor: user.avatar_color,
               }))
             });

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,13 +69,11 @@ export function Header({ onNewProject, onOpenSettings, onOpenProfile }: HeaderPr
               <span className="text-sm text-muted-foreground">Team</span>
               <div className="flex -space-x-2">
                 {visibleMembers.map((member) => (
-                  <Avatar 
-                    key={member.id} 
-                    className={cn(
-                      "h-8 w-8 border-2 border-surface",
-                      member.avatarColor
-                    )}
+                  <Avatar
+                    key={member.id}
+                    className="h-8 w-8 border-2 border-surface"
                   >
+                    {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
                     <AvatarFallback className={cn("text-xs font-medium text-white", member.avatarColor)}>
                       {member.name.split(' ').map((n) => n[0]).join('')}
                     </AvatarFallback>
@@ -119,7 +117,8 @@ export function Header({ onNewProject, onOpenSettings, onOpenProfile }: HeaderPr
                     className="h-10 w-10 rounded-lg border-border"
                     aria-label="User menu"
                   >
-                    <Avatar className={cn("h-7 w-7", user.avatarColor)}>
+                    <Avatar className="h-7 w-7">
+                      {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                       <AvatarFallback className={cn("text-xs font-medium text-white", user.avatarColor)}>
                         {user.name.split(' ').map((n) => n[0]).join('')}
                       </AvatarFallback>

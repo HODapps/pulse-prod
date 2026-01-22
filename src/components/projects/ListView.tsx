@@ -5,7 +5,7 @@ import { Calendar, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from
 import { Project, PRIORITY_CONFIG, STATUS_CONFIG, TeamMember } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -67,6 +67,7 @@ export function ListView({ onEditProject }: ListViewProps) {
             <CollapsibleTrigger className="flex w-full items-center justify-between p-4 hover:bg-muted/30 transition-colors">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
+                  {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
                   <AvatarFallback className="bg-primary-container text-accent-foreground">
                     {member.name.split(' ').map((n) => n[0]).join('')}
                   </AvatarFallback>
