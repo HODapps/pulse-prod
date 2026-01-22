@@ -62,11 +62,11 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; className: strin
   'high': { label: 'High', className: 'priority-high' },
 };
 
-export const DEPENDENCY_CONFIG: Record<DependencyStatus, { label: string; className: string; icon?: string }> = {
+export const DEPENDENCY_CONFIG: Record<DependencyStatus, { label: string; className: string }> = {
   'none': { label: 'None', className: 'dependency-none' },
-  'wip': { label: 'WIP', className: 'dependency-wip', icon: '🚧' },
-  'paused': { label: 'Paused', className: 'dependency-paused', icon: '⏸️' },
-  'blocked': { label: 'Blocked', className: 'dependency-blocked', icon: '🚫' },
+  'wip': { label: 'WIP', className: 'dependency-wip' },
+  'paused': { label: 'Paused', className: 'dependency-paused' },
+  'blocked': { label: 'Blocked', className: 'dependency-blocked' },
 };
 
 export const ALL_STATUSES: ProjectStatus[] = [

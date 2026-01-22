@@ -70,10 +70,10 @@
     --priority-high-bg: 0 84% 92%;
 
     /* Dependency Colors */
-    --dependency-wip: 217 91% 60%;
-    --dependency-wip-bg: 217 91% 92%;
-    --dependency-paused: 38 92% 50%;
-    --dependency-paused-bg: 38 92% 92%;
+    --dependency-wip: 160 84% 39%;
+    --dependency-wip-bg: 160 70% 92%;
+    --dependency-paused: 220 10% 50%;
+    --dependency-paused-bg: 220 10% 92%;
     --dependency-blocked: 0 84% 60%;
     --dependency-blocked-bg: 0 84% 92%;
 
@@ -168,10 +168,10 @@
     --priority-high: 0 75% 55%;
     --priority-high-bg: 0 50% 15%;
 
-    --dependency-wip: 217 91% 60%;
-    --dependency-wip-bg: 217 91% 15%;
-    --dependency-paused: 38 85% 55%;
-    --dependency-paused-bg: 38 50% 15%;
+    --dependency-wip: 160 70% 45%;
+    --dependency-wip-bg: 160 50% 15%;
+    --dependency-paused: 220 10% 60%;
+    --dependency-paused-bg: 220 10% 20%;
     --dependency-blocked: 0 75% 55%;
     --dependency-blocked-bg: 0 50% 15%;
 

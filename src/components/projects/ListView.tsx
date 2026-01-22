@@ -134,7 +134,7 @@ export function ListView({ onEditProject }: ListViewProps) {
                                 <h3 className="font-medium text-foreground">{project.title}</h3>
                                 {project.dependency && project.dependency !== 'none' && (
                                   <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full", DEPENDENCY_CONFIG[project.dependency].className)}>
-                                    {DEPENDENCY_CONFIG[project.dependency].icon} {DEPENDENCY_CONFIG[project.dependency].label}
+                                    {DEPENDENCY_CONFIG[project.dependency].label}
                                   </span>
                                 )}
                               </div>

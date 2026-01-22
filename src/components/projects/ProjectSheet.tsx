@@ -341,7 +341,6 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
               <SelectContent>
                 {(['none', 'wip', 'paused', 'blocked'] as DependencyStatus[]).map((dep) => (
                   <SelectItem key={dep} value={dep}>
-                    {DEPENDENCY_CONFIG[dep].icon && `${DEPENDENCY_CONFIG[dep].icon} `}
                     {DEPENDENCY_CONFIG[dep].label}
                   </SelectItem>
                 ))}

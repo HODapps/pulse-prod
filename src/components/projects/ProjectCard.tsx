@@ -116,7 +116,7 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
                   "px-2.5 py-0.5 text-xs font-medium rounded-full",
                   DEPENDENCY_CONFIG[project.dependency].className
                 )}>
-                  {DEPENDENCY_CONFIG[project.dependency].icon} {DEPENDENCY_CONFIG[project.dependency].label}
+                  {DEPENDENCY_CONFIG[project.dependency].label}
                 </span>
               )}
               {/* Priority Badge */}
