@@ -344,12 +344,18 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       }
 
       // Mark user as inactive (soft delete)
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('users')
         .update({ status: 'inactive' })
-        .eq('id', memberToDelete.id);
+        .eq('id', memberToDelete.id)
+        .select();
 
-      if (error) throw error;
+      console.log('Update response:', { data, error });
+
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw new Error(`Failed to update user status: ${error.message}`);
+      }
 
       console.log('User marked as inactive successfully');
 
