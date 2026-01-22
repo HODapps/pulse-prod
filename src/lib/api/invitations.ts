@@ -132,18 +132,29 @@ export async function acceptInvitation(token: string, userId: string) {
 }
 
 export async function generateInviteLink(data: GenerateInviteLinkData) {
-  const { data: { user } } = await supabase.auth.getUser();
+  console.log('generateInviteLink called with data:', data);
 
-  if (!user) {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  console.log('Auth data:', authData, 'Auth error:', authError);
+
+  if (authError || !authData.user) {
     throw new Error('Not authenticated');
   }
 
+  const user = authData.user;
+
   // Check if user is admin
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('users')
     .select('role')
     .eq('id', user.id)
     .single();
+
+  console.log('Profile data:', profile, 'Profile error:', profileError);
+
+  if (profileError) {
+    throw new Error(`Failed to fetch user profile: ${profileError.message}`);
+  }
 
   if (profile?.role !== 'admin') {
     throw new Error('Only admins can generate invitation links');
@@ -153,6 +164,8 @@ export async function generateInviteLink(data: GenerateInviteLinkData) {
   const token = nanoid(32);
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+  console.log('Creating invitation with token:', token);
 
   // Create invitation record without email (email will be filled during signup)
   const { data: invitation, error } = await supabase
@@ -168,10 +181,14 @@ export async function generateInviteLink(data: GenerateInviteLinkData) {
     .select()
     .single();
 
-  if (error) throw error;
+  console.log('Invitation created:', invitation, 'Error:', error);
+
+  if (error) throw new Error(`Failed to create invitation: ${error.message}`);
 
   // Generate the invite URL
   const inviteUrl = `${window.location.origin}/signup?invite=${token}`;
+
+  console.log('Generated invite URL:', inviteUrl);
 
   return {
     inviteUrl,

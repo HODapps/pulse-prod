@@ -95,6 +95,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email, role, avatar_color, status, last_active_at')
+        .neq('status', 'inactive')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -158,17 +159,21 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     setIsGeneratingLink(true);
 
     try {
-      const { inviteUrl } = await generateInviteLink({
+      console.log('Generating invite link with role:', inviteRole);
+      const result = await generateInviteLink({
         role: inviteRole,
       });
 
-      setInviteLink(inviteUrl);
+      console.log('Invite link generated:', result);
+
+      setInviteLink(result.inviteUrl);
 
       toast({
         title: "Invite link generated!",
         description: "Copy and share this link with your team member",
       });
     } catch (error) {
+      console.error('Error generating invite link:', error);
       toast({
         title: "Failed to generate invite link",
         description: error instanceof Error ? error.message : 'Unknown error',
@@ -299,17 +304,26 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     }
 
     try {
-      // Delete from auth.users (will cascade to public.users)
-      const { error } = await supabase.auth.admin.deleteUser(memberId);
+      // Mark user as inactive and remove from public.users
+      // Note: We can't delete from auth.users from client side (requires service role)
+      // Instead, we mark as inactive which effectively removes them from the team
+      const { error } = await supabase
+        .from('users')
+        .update({ status: 'inactive' })
+        .eq('id', memberId);
 
       if (error) throw error;
 
+      // Remove from local state
       setTeamMembers(prev => prev.filter(m => m.id !== memberId));
+
+      // Also reload team members to ensure projectStore is synced
+      const { loadTeamMembers } = useProjectStore.getState();
+      await loadTeamMembers();
 
       toast({
         title: "Member removed",
         description: `${memberName} has been removed from the team.`,
-        variant: "destructive",
       });
     } catch (error) {
       toast({

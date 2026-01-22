@@ -261,6 +261,7 @@ export const useProjectStore = create<ProjectStore>()(
           const { data, error } = await supabase
             .from('users')
             .select('id, name, email, role, avatar, avatar_color')
+            .neq('status', 'inactive')
             .order('name', { ascending: true });
 
           if (error) throw error;
