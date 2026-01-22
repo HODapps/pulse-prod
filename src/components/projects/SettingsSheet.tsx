@@ -8,6 +8,16 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
 import { generateInviteLink } from '@/lib/api/invitations';
@@ -61,6 +71,9 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -284,7 +297,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     }
   };
 
-  const handleDeleteMember = async (memberId: string, memberName: string) => {
+  const handleDeleteMemberClick = (memberId: string, memberName: string) => {
     if (user?.role !== 'admin') {
       toast({
         title: "Permission denied",
@@ -303,34 +316,52 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       return;
     }
 
+    // Open confirmation dialog
+    setMemberToDelete({ id: memberId, name: memberName });
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!memberToDelete) return;
+
+    setIsDeleting(true);
     try {
-      // Mark user as inactive and remove from public.users
-      // Note: We can't delete from auth.users from client side (requires service role)
-      // Instead, we mark as inactive which effectively removes them from the team
+      console.log('Deleting user from Supabase:', memberToDelete.id);
+
+      // Delete from users table (this will cascade delete related data)
       const { error } = await supabase
         .from('users')
-        .update({ status: 'inactive' })
-        .eq('id', memberId);
+        .delete()
+        .eq('id', memberToDelete.id);
 
       if (error) throw error;
 
-      // Remove from local state
-      setTeamMembers(prev => prev.filter(m => m.id !== memberId));
+      console.log('User deleted successfully');
 
-      // Also reload team members to ensure projectStore is synced
+      // Refresh the team members list
+      await fetchTeamMembers();
+
+      // Also reload team members in projectStore
       const { loadTeamMembers } = useProjectStore.getState();
       await loadTeamMembers();
 
       toast({
         title: "Member removed",
-        description: `${memberName} has been removed from the team.`,
+        description: `${memberToDelete.name} has been removed from the team.`,
       });
+
+      // Close dialog and reset state
+      setShowDeleteDialog(false);
+      setMemberToDelete(null);
     } catch (error) {
+      console.error('Error deleting member:', error);
       toast({
         title: "Failed to remove member",
         description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -595,7 +626,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteMember(member.id, member.name)}
+                            onClick={() => handleDeleteMemberClick(member.id, member.name)}
                             aria-label={`Remove ${member.name}`}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -625,6 +656,30 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
           </div>
         </div>
       </SheetContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove team member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{' '}
+              <span className="font-semibold">{memberToDelete?.name}</span> from the team?
+              This action cannot be undone and will permanently delete their account and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Removing...' : 'Remove Member'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
