@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, CheckCircle2, Circle, ChevronRight } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Project, PRIORITY_CONFIG, STATUS_CONFIG } from '@/types/project';
+import { Project, PRIORITY_CONFIG, STATUS_CONFIG, DEPENDENCY_CONFIG } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
@@ -98,9 +98,9 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
             <div className="w-5" /> 
           )}
           
-          {/* Title and Priority */}
+          {/* Title and Badges */}
           <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
-            <h3 
+            <h3
               className="font-medium text-foreground text-sm leading-snug cursor-pointer hover:text-primary transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
@@ -109,12 +109,24 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
             >
               {project.title}
             </h3>
-            <span className={cn(
-              "shrink-0 px-2.5 py-0.5 text-xs font-medium rounded-full",
-              PRIORITY_CONFIG[project.priority].className
-            )}>
-              {PRIORITY_CONFIG[project.priority].label}
-            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Dependency Badge */}
+              {project.dependency && project.dependency !== 'none' && (
+                <span className={cn(
+                  "px-2.5 py-0.5 text-xs font-medium rounded-full",
+                  DEPENDENCY_CONFIG[project.dependency].className
+                )}>
+                  {DEPENDENCY_CONFIG[project.dependency].icon} {DEPENDENCY_CONFIG[project.dependency].label}
+                </span>
+              )}
+              {/* Priority Badge */}
+              <span className={cn(
+                "px-2.5 py-0.5 text-xs font-medium rounded-full",
+                PRIORITY_CONFIG[project.priority].className
+              )}>
+                {PRIORITY_CONFIG[project.priority].label}
+              </span>
+            </div>
           </div>
         </div>
 

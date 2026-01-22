@@ -87,6 +87,7 @@ export interface Database {
           description: string
           status: string
           priority: 'low' | 'medium' | 'high'
+          dependency: 'none' | 'wip' | 'paused' | 'blocked'
           assignee_id: string | null
           created_by_id: string | null
           start_date: string | null
@@ -101,6 +102,7 @@ export interface Database {
           description?: string
           status: string
           priority: 'low' | 'medium' | 'high'
+          dependency?: 'none' | 'wip' | 'paused' | 'blocked'
           assignee_id?: string | null
           created_by_id?: string | null
           start_date?: string | null
@@ -115,6 +117,7 @@ export interface Database {
           description?: string
           status?: string
           priority?: 'low' | 'medium' | 'high'
+          dependency?: 'none' | 'wip' | 'paused' | 'blocked'
           assignee_id?: string | null
           created_by_id?: string | null
           start_date?: string | null

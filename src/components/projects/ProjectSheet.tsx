@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, X, Trash2 } from 'lucide-react';
-import { Project, ProjectStatus, Priority, ALL_STATUSES, STATUS_CONFIG, PRIORITY_CONFIG, TeamMember } from '@/types/project';
+import { Project, ProjectStatus, Priority, DependencyStatus, ALL_STATUSES, STATUS_CONFIG, PRIORITY_CONFIG, DEPENDENCY_CONFIG, TeamMember } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ const projectSchema = z.object({
   description: z.string(),
   status: z.enum(['backlog', 'todo', 'in-progress', 'delivered', 'audit', 'complete', 'archived']),
   priority: z.enum(['low', 'medium', 'high']),
+  dependency: z.enum(['none', 'wip', 'paused', 'blocked']),
   assigneeId: z.string().min(1, 'Assignee is required'),
   startDate: z.string().optional(),
   dueDate: z.string().optional(),
@@ -117,6 +118,7 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
       description: '',
       status: 'backlog',
       priority: 'medium',
+      dependency: 'none',
       assigneeId: currentUserId,
       startDate: '',
       dueDate: '',
@@ -136,6 +138,7 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
         description: project.description,
         status: project.status,
         priority: project.priority,
+        dependency: project.dependency || 'none',
         assigneeId: project.assigneeId,
         startDate: project.startDate,
         dueDate: project.dueDate,
@@ -238,7 +241,7 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
             />
           </div>
 
-          {/* Status & Priority */}
+          {/* Status & Priority & Dependency */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Status</Label>
@@ -277,6 +280,27 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Dependency Status */}
+          <div className="space-y-2">
+            <Label>Dependency Status</Label>
+            <Select
+              value={watch('dependency')}
+              onValueChange={(value) => setValue('dependency', value as DependencyStatus)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select dependency status" />
+              </SelectTrigger>
+              <SelectContent>
+                {(['none', 'wip', 'paused', 'blocked'] as DependencyStatus[]).map((dep) => (
+                  <SelectItem key={dep} value={dep}>
+                    {DEPENDENCY_CONFIG[dep].icon && `${DEPENDENCY_CONFIG[dep].icon} `}
+                    {DEPENDENCY_CONFIG[dep].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Assignee */}

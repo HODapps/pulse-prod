@@ -69,6 +69,14 @@
     --priority-high: 0 84% 60%;
     --priority-high-bg: 0 84% 92%;
 
+    /* Dependency Colors */
+    --dependency-wip: 217 91% 60%;
+    --dependency-wip-bg: 217 91% 92%;
+    --dependency-paused: 38 92% 50%;
+    --dependency-paused-bg: 38 92% 92%;
+    --dependency-blocked: 0 84% 60%;
+    --dependency-blocked-bg: 0 84% 92%;
+
     /* Status Colors - Dot indicators */
     --status-backlog: 220 10% 60%;
     --status-todo: 45 93% 47%;
@@ -160,6 +168,13 @@
     --priority-high: 0 75% 55%;
     --priority-high-bg: 0 50% 15%;
 
+    --dependency-wip: 217 91% 60%;
+    --dependency-wip-bg: 217 91% 15%;
+    --dependency-paused: 38 85% 55%;
+    --dependency-paused-bg: 38 50% 15%;
+    --dependency-blocked: 0 75% 55%;
+    --dependency-blocked-bg: 0 50% 15%;
+
     --border: 220 20% 20%;
     --input: 220 20% 20%;
     --ring: 160 70% 50%;
@@ -228,6 +243,23 @@
 
   .priority-high {
     @apply bg-[hsl(var(--priority-high-bg))] text-[hsl(var(--priority-high))] font-medium;
+  }
+
+  /* Dependency badges */
+  .dependency-none {
+    @apply hidden;
+  }
+
+  .dependency-wip {
+    @apply bg-[hsl(var(--dependency-wip-bg))] text-[hsl(var(--dependency-wip))] font-medium;
+  }
+
+  .dependency-paused {
+    @apply bg-[hsl(var(--dependency-paused-bg))] text-[hsl(var(--dependency-paused))] font-medium;
+  }
+
+  .dependency-blocked {
+    @apply bg-[hsl(var(--dependency-blocked-bg))] text-[hsl(var(--dependency-blocked))] font-medium;
   }
 
   /* Status dot colors */

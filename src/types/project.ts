@@ -9,6 +9,8 @@ export type ProjectStatus =
 
 export type Priority = 'low' | 'medium' | 'high';
 
+export type DependencyStatus = 'none' | 'wip' | 'paused' | 'blocked';
+
 export interface SubTask {
   id: string;
   title: string;
@@ -34,6 +36,7 @@ export interface Project {
   description: string;
   status: ProjectStatus;
   priority: Priority;
+  dependency: DependencyStatus;
   assigneeId: string;
   createdById: string;
   startDate: string;
@@ -57,6 +60,13 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; className: strin
   'low': { label: 'Low', className: 'priority-low' },
   'medium': { label: 'Medium', className: 'priority-medium' },
   'high': { label: 'High', className: 'priority-high' },
+};
+
+export const DEPENDENCY_CONFIG: Record<DependencyStatus, { label: string; className: string; icon?: string }> = {
+  'none': { label: 'None', className: 'dependency-none' },
+  'wip': { label: 'WIP', className: 'dependency-wip', icon: '🚧' },
+  'paused': { label: 'Paused', className: 'dependency-paused', icon: '⏸️' },
+  'blocked': { label: 'Blocked', className: 'dependency-blocked', icon: '🚫' },
 };
 
 export const ALL_STATUSES: ProjectStatus[] = [

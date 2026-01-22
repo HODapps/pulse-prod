@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Calendar, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import { Project, PRIORITY_CONFIG, STATUS_CONFIG, TeamMember } from '@/types/project';
+import { Project, PRIORITY_CONFIG, STATUS_CONFIG, DEPENDENCY_CONFIG, TeamMember } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -130,7 +130,14 @@ export function ListView({ onEditProject }: ListViewProps) {
                               )}
                             </button>
                             <div>
-                              <h3 className="font-medium text-foreground">{project.title}</h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-medium text-foreground">{project.title}</h3>
+                                {project.dependency && project.dependency !== 'none' && (
+                                  <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full", DEPENDENCY_CONFIG[project.dependency].className)}>
+                                    {DEPENDENCY_CONFIG[project.dependency].icon} {DEPENDENCY_CONFIG[project.dependency].label}
+                                  </span>
+                                )}
+                              </div>
                               {!isExpanded && project.description && (
                                 <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
                                   {project.description}
