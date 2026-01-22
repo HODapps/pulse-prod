@@ -93,9 +93,11 @@ const Index = () => {
   };
 
   const handleNewProject = (status?: ProjectStatus) => {
+    console.log('New Project button clicked, status:', status);
     setEditingProject(null);
     setDefaultStatus(status);
     setSheetOpen(true);
+    console.log('Sheet should be open now');
   };
 
   const handleEditProject = (project: Project) => {
