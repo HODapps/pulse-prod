@@ -7,6 +7,10 @@ export interface InviteUserData {
   role: UserRole;
 }
 
+export interface GenerateInviteLinkData {
+  role: UserRole;
+}
+
 export async function sendInvitation(data: InviteUserData) {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -125,4 +129,53 @@ export async function acceptInvitation(token: string, userId: string) {
     .eq('token', token);
 
   if (error) throw error;
+}
+
+export async function generateInviteLink(data: GenerateInviteLinkData) {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'admin') {
+    throw new Error('Only admins can generate invitation links');
+  }
+
+  // Generate unique token
+  const token = nanoid(32);
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+  // Create invitation record without email (email will be filled during signup)
+  const { data: invitation, error } = await supabase
+    .from('invitations')
+    .insert({
+      email: '', // Empty email for magic link invites
+      role: data.role,
+      invited_by: user.id,
+      token,
+      expires_at: expiresAt.toISOString(),
+      status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Generate the invite URL
+  const inviteUrl = `${window.location.origin}/signup?invite=${token}`;
+
+  return {
+    inviteUrl,
+    token,
+    expiresAt: expiresAt.toISOString(),
+  };
 }

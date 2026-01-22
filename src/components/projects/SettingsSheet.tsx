@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Copy, Check, Mail, Crown, Eye, Edit, Shield, Trash2, Circle } from 'lucide-react';
+import { Settings, Copy, Check, Mail, Crown, Eye, Edit, Shield, Trash2, Circle, Link as LinkIcon } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
-import { sendInvitation } from '@/lib/api/invitations';
+import { generateInviteLink } from '@/lib/api/invitations';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -54,13 +54,13 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
 
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [boardSettings, setBoardSettings] = useState<BoardSettings | null>(null);
-  const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<UserRole>('editor');
-  const [isInviting, setIsInviting] = useState(false);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [selectedColor, setSelectedColor] = useState(PROJECT_COLORS[0].value);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -145,52 +145,50 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     });
   };
 
-  const handleInvite = async () => {
-    if (!inviteEmail) {
-      toast({
-        title: "Email required",
-        description: "Please enter an email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleGenerateInviteLink = async () => {
     if (!user || user.role !== 'admin') {
       toast({
         title: "Permission denied",
-        description: "Only admins can send invitations",
+        description: "Only admins can generate invitation links",
         variant: "destructive",
       });
       return;
     }
 
-    setIsInviting(true);
+    setIsGeneratingLink(true);
 
     try {
-      const { message } = await sendInvitation({
-        email: inviteEmail,
+      const { inviteUrl } = await generateInviteLink({
         role: inviteRole,
       });
 
+      setInviteLink(inviteUrl);
+
       toast({
-        title: "Invitation sent!",
-        description: message || `Magic link sent to ${inviteEmail}`,
+        title: "Invite link generated!",
+        description: "Copy and share this link with your team member",
       });
-
-      setInviteEmail('');
-      setInviteRole('editor');
-
-      // Refresh team members list
-      fetchTeamMembers();
     } catch (error) {
       toast({
-        title: "Failed to send invitation",
+        title: "Failed to generate invite link",
         description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
-      setIsInviting(false);
+      setIsGeneratingLink(false);
     }
+  };
+
+  const handleCopyInviteLink = () => {
+    if (!inviteLink) return;
+
+    navigator.clipboard.writeText(inviteLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+    toast({
+      title: "Link copied",
+      description: "Invite link copied to clipboard.",
+    });
   };
 
   const handleThemeToggle = (checked: boolean) => {
@@ -418,17 +416,9 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
             <>
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Invite Collaborators</Label>
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="Enter email address"
-                    className="h-10"
-                    disabled={isInviting}
-                  />
+                <div className="space-y-3">
                   <div className="flex gap-2">
-                    <Select value={inviteRole} onValueChange={(value: UserRole) => setInviteRole(value)} disabled={isInviting}>
+                    <Select value={inviteRole} onValueChange={(value: UserRole) => setInviteRole(value)} disabled={isGeneratingLink}>
                       <SelectTrigger className="h-10 flex-1">
                         <SelectValue />
                       </SelectTrigger>
@@ -453,23 +443,42 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button onClick={handleInvite} size="sm" className="h-10 px-4" disabled={isInviting || !inviteEmail}>
-                      {isInviting ? (
+                    <Button onClick={handleGenerateInviteLink} size="sm" className="h-10 px-4" disabled={isGeneratingLink}>
+                      {isGeneratingLink ? (
                         <>
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent mr-2" />
-                          Sending...
+                          Generating...
                         </>
                       ) : (
                         <>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Invite
+                          <LinkIcon className="h-4 w-4 mr-2" />
+                          Generate Link
                         </>
                       )}
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    A magic link will be sent to the email address
-                  </p>
+
+                  {inviteLink && (
+                    <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={inviteLink}
+                          readOnly
+                          className="h-9 flex-1 text-xs bg-background"
+                        />
+                        <Button onClick={handleCopyInviteLink} variant="outline" size="sm" className="h-9 px-3">
+                          {linkCopied ? (
+                            <Check className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Share this magic link with your team member. Link expires in 7 days.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

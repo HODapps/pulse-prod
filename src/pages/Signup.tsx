@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 const signupSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
@@ -27,14 +28,13 @@ type SignupFormData = z.infer<typeof signupSchema>;
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const inviteToken = searchParams.get('token');
+  const inviteToken = searchParams.get('invite');
 
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [signupError, setSignupError] = useState('');
   const [signupSuccess, setSignupSuccess] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'admin' | 'designer'>('designer');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'editor' | 'viewer'>('editor');
 
   const {
     register,
@@ -43,6 +43,7 @@ const Signup = () => {
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
+      email: '',
       name: '',
       password: '',
       confirmPassword: '',
@@ -60,8 +61,7 @@ const Signup = () => {
 
       try {
         const invitation = await verifyInviteToken(inviteToken);
-        setInviteEmail(invitation.email);
-        setInviteRole(invitation.role);
+        setInviteRole(invitation.role as 'admin' | 'editor' | 'viewer');
         setIsVerifying(false);
       } catch (error) {
         setSignupError(error instanceof Error ? error.message : 'Invalid or expired invitation');
@@ -81,9 +81,20 @@ const Signup = () => {
         throw new Error('Invalid invitation token');
       }
 
+      // Check if email already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', data.email)
+        .single();
+
+      if (existingUser) {
+        throw new Error('An account with this email already exists');
+      }
+
       // Create auth user with metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: inviteEmail,
+        email: data.email,
         password: data.password,
         options: {
           data: {
@@ -97,8 +108,14 @@ const Signup = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Mark invitation as accepted
-        await acceptInvitation(inviteToken, authData.user.id);
+        // Update invitation with email and mark as accepted
+        await supabase
+          .from('invitations')
+          .update({
+            email: data.email,
+            status: 'accepted'
+          })
+          .eq('token', inviteToken);
 
         setSignupSuccess(true);
 
@@ -129,7 +146,7 @@ const Signup = () => {
     );
   }
 
-  if (signupError && !inviteEmail) {
+  if (signupError && isVerifying) {
     return (
       <div className="min-h-screen bg-board flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-elevation-2">
@@ -198,7 +215,7 @@ const Signup = () => {
                 </Alert>
               )}
 
-              {/* Email Display (Read-only) */}
+              {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -206,11 +223,18 @@ const Signup = () => {
                   <Input
                     id="email"
                     type="email"
-                    value={inviteEmail}
-                    className="pl-10 h-11 bg-muted/50"
-                    disabled
+                    placeholder="Enter your email"
+                    className={cn(
+                      'pl-10 h-11',
+                      errors.email && 'border-destructive focus-visible:ring-destructive'
+                    )}
+                    {...register('email')}
+                    autoComplete="email"
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                )}
               </div>
 
               {/* Name Field */}
