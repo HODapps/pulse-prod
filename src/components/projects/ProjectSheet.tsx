@@ -168,6 +168,7 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
       description: data.description,
       status: data.status,
       priority: data.priority,
+      dependency: data.dependency,
       assigneeId: data.assigneeId,
       subTasks: data.subTasks.map(st => ({
         id: st.id,
