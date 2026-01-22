@@ -147,12 +147,18 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
       setStartDate(project.startDate ? new Date(project.startDate) : undefined);
       setDueDate(project.dueDate ? new Date(project.dueDate) : undefined);
     } else {
+      // Only set assigneeId if currentUserId exists and teamMembers are loaded
+      const validAssigneeId = currentUserId && teamMembers.some(m => m.id === currentUserId)
+        ? currentUserId
+        : (teamMembers.length > 0 ? teamMembers[0].id : '');
+
       reset({
         title: '',
         description: '',
         status: defaultStatus || 'backlog',
         priority: 'medium',
-        assigneeId: currentUserId,
+        dependency: 'none',
+        assigneeId: validAssigneeId,
         startDate: '',
         dueDate: '',
         subTasks: [],
@@ -160,9 +166,11 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
       setStartDate(undefined);
       setDueDate(undefined);
     }
-  }, [project, reset, currentUserId, defaultStatus]);
+  }, [project, reset, currentUserId, defaultStatus, teamMembers]);
 
   const onSubmit = async (data: ProjectFormData) => {
+    console.log('Form submitted with data:', data);
+
     const projectData = {
       title: data.title,
       description: data.description,
@@ -179,15 +187,20 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
       dueDate: dueDate ? format(dueDate, 'yyyy-MM-dd') : '',
     };
 
+    console.log('Prepared project data:', projectData);
+
     try {
       if (isEditing && project) {
+        console.log('Updating project:', project.id);
         await updateProject(project.id, projectData);
       } else {
+        console.log('Creating new project');
         await addProject({
           ...projectData,
           createdById: currentUserId,
         });
       }
+      console.log('Project saved successfully');
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving project:', error);
@@ -216,7 +229,9 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
+        <form onSubmit={handleSubmit(onSubmit, (errors) => {
+          console.log('Form validation failed:', errors);
+        })} className="space-y-6 mt-6">
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
