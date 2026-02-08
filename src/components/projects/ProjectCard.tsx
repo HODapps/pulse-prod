@@ -2,8 +2,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, CheckCircle2, Circle, ChevronRight } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Project, PRIORITY_CONFIG, STATUS_CONFIG, DEPENDENCY_CONFIG } from '@/types/project';
+import { Project, PRIORITY_CONFIG, DEPENDENCY_CONFIG } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
+import { useBoardStore } from '@/store/boardStore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, onEdit, compact = false }: ProjectCardProps) {
   const { teamMembers, expandedCards, toggleCardExpand, toggleSubTask, currentUserId } = useProjectStore();
+  const { workflowSteps } = useBoardStore();
   const isExpanded = expandedCards.includes(project.id);
 
   const assignee = teamMembers.find((m) => m.id === project.assigneeId);
@@ -35,7 +37,10 @@ export function ProjectCard({ project, onEdit, compact = false }: ProjectCardPro
   const completedTasks = project.subTasks.filter((t) => t.completed).length;
   const totalTasks = project.subTasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-  const progressClass = STATUS_CONFIG[project.status].progressClass;
+
+  // Get progress class from workflow step
+  const currentStep = workflowSteps.find(s => s.slug === project.status);
+  const progressClass = currentStep?.color_progress || 'progress-bar-backlog';
 
   const {
     attributes,
