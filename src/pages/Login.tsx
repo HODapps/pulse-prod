@@ -39,7 +39,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/', { replace: true });
+      navigate('/boards', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -48,7 +48,7 @@ const Login = () => {
     const result = await login(data);
 
     if (result.success) {
-      navigate('/', { replace: true });
+      navigate('/boards', { replace: true });
     } else {
       setLoginError(result.error || 'Login failed. Please try again.');
     }

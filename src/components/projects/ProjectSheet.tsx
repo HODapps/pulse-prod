@@ -4,8 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, X, Trash2 } from 'lucide-react';
-import { Project, ProjectStatus, Priority, DependencyStatus, ALL_STATUSES, STATUS_CONFIG, PRIORITY_CONFIG, DEPENDENCY_CONFIG, TeamMember } from '@/types/project';
+import { Project, Priority, DependencyStatus, PRIORITY_CONFIG, DEPENDENCY_CONFIG, TeamMember } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
+import { useBoardStore } from '@/store/boardStore';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +48,7 @@ import { cn } from '@/lib/utils';
 const projectSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string(),
-  status: z.enum(['backlog', 'todo', 'in-progress', 'delivered', 'audit', 'complete', 'archived']),
+  status: z.string().min(1, 'Status is required'),
   priority: z.enum(['low', 'medium', 'high']),
   dependency: z.enum(['none', 'wip', 'paused', 'blocked']),
   assigneeId: z.string().min(1, 'Assignee is required'),
@@ -66,11 +67,12 @@ interface ProjectSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project?: Project | null;
-  defaultStatus?: ProjectStatus;
+  defaultStatus?: string;
 }
 
 export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: ProjectSheetProps) {
   const { currentUserId, addProject, updateProject, deleteProject } = useProjectStore();
+  const { workflowSteps } = useBoardStore();
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [newSubTask, setNewSubTask] = useState('');
@@ -167,7 +169,7 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
       reset({
         title: '',
         description: '',
-        status: defaultStatus || 'backlog',
+        status: defaultStatus || (workflowSteps.length > 0 ? workflowSteps[0].slug : ''),
         priority: 'medium',
         dependency: 'none',
         assigneeId: validAssigneeId,
@@ -293,15 +295,15 @@ export function ProjectSheet({ open, onOpenChange, project, defaultStatus }: Pro
               <Label>Status</Label>
               <Select
                 value={watch('status')}
-                onValueChange={(value) => setValue('status', value as ProjectStatus)}
+                onValueChange={(value) => setValue('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ALL_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {STATUS_CONFIG[status].label}
+                  {workflowSteps.map((step) => (
+                    <SelectItem key={step.slug} value={step.slug}>
+                      {step.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

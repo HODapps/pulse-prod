@@ -17,18 +17,19 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { ChevronDown, Plus } from 'lucide-react';
-import { Project, ProjectStatus, ALL_STATUSES, STATUS_CONFIG } from '@/types/project';
+import { Project } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { useAuthStore } from '@/store/authStore';
+import { useBoardStore } from '@/store/boardStore';
 import { ProjectCard } from './ProjectCard';
 import { EmptyState } from '../onboarding/EmptyState';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 // Droppable area component for empty columns
-function DroppableArea({ status }: { status: ProjectStatus }) {
+function DroppableArea({ status }: { status: string }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
-  
+
   return (
     <div
       ref={setNodeRef}
@@ -44,11 +45,12 @@ function DroppableArea({ status }: { status: ProjectStatus }) {
 
 interface KanbanBoardProps {
   onEditProject: (project: Project) => void;
-  onNewProject: (status?: ProjectStatus) => void;
+  onNewProject: (status?: string) => void;
 }
 
 export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
   const { projects, searchQuery, collapsedColumns, toggleColumnCollapse, moveProject } = useProjectStore();
+  const { workflowSteps } = useBoardStore();
   const { user } = useAuthStore();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -69,20 +71,22 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
   }, [projects, searchQuery]);
 
   const projectsByStatus = useMemo(() => {
-    const grouped: Record<ProjectStatus, Project[]> = {
-      backlog: [],
-      todo: [],
-      'in-progress': [],
-      delivered: [],
-      audit: [],
-      complete: [],
-      archived: [],
-    };
-    filteredProjects.forEach((p) => {
-      grouped[p.status].push(p);
+    const grouped: Record<string, Project[]> = {};
+
+    // Initialize with workflow steps
+    workflowSteps.forEach(step => {
+      grouped[step.slug] = [];
     });
+
+    // Group projects by status
+    filteredProjects.forEach((p) => {
+      if (grouped[p.status]) {
+        grouped[p.status].push(p);
+      }
+    });
+
     return grouped;
-  }, [filteredProjects]);
+  }, [filteredProjects, workflowSteps]);
 
   const activeProject = activeId ? projects.find((p) => p.id === activeId) : null;
 
@@ -100,8 +104,8 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
     const overId = over.id as string;
 
     // Check if dropped on a column
-    if (ALL_STATUSES.includes(overId as ProjectStatus)) {
-      await moveProject(projectId, overId as ProjectStatus);
+    if (workflowSteps.some(s => s.slug === overId)) {
+      await moveProject(projectId, overId);
       return;
     }
 
@@ -135,14 +139,13 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-4 p-4 md:p-6 overflow-x-auto custom-scrollbar min-h-[calc(100vh-10rem)] bg-board">
-        {ALL_STATUSES.map((status) => {
-          const isCollapsed = collapsedColumns.includes(status);
-          const columnProjects = projectsByStatus[status];
-          const config = STATUS_CONFIG[status];
+        {workflowSteps.map((step) => {
+          const isCollapsed = collapsedColumns.includes(step.slug);
+          const columnProjects = projectsByStatus[step.slug] || [];
 
           return (
             <motion.div
-              key={status}
+              key={step.slug}
               layout
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
               className={cn(
@@ -156,9 +159,9 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
                   {!isCollapsed && (
                     <div className="flex items-center gap-2">
                       {/* Status Dot */}
-                      <div className={cn("w-2.5 h-2.5 rounded-full", config.dotClass)} />
+                      <div className={cn("w-2.5 h-2.5 rounded-full", step.color_dot)} />
                       <h2 className="font-medium text-foreground text-sm">
-                        {config.label}
+                        {step.name}
                       </h2>
                       <span className="text-sm text-muted-foreground">
                         {columnProjects.length}
@@ -168,9 +171,9 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => toggleColumnCollapse(status)}
+                    onClick={() => toggleColumnCollapse(step.slug)}
                     className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-                    aria-label={isCollapsed ? `Expand ${config.label}` : `Collapse ${config.label}`}
+                    aria-label={isCollapsed ? `Expand ${step.name}` : `Collapse ${step.name}`}
                   >
                     <ChevronDown className={cn(
                       "h-4 w-4 transition-transform",
@@ -181,12 +184,12 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
 
                 {isCollapsed && (
                   <div className="mt-3 flex flex-col items-center gap-2">
-                    <div className={cn("w-2.5 h-2.5 rounded-full", config.dotClass)} />
+                    <div className={cn("w-2.5 h-2.5 rounded-full", step.color_dot)} />
                     <span
                       className="text-xs font-medium text-muted-foreground"
                       style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
                     >
-                      {config.label} ({columnProjects.length})
+                      {step.name} ({columnProjects.length})
                     </span>
                   </div>
                 )}
@@ -216,7 +219,7 @@ export function KanbanBoard({ onEditProject, onNewProject }: KanbanBoardProps) {
                     </SortableContext>
 
                     {columnProjects.length === 0 && (
-                      <DroppableArea status={status} />
+                      <DroppableArea status={step.slug} />
                     )}
                   </motion.div>
                 )}

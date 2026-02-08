@@ -1,84 +1,63 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { KanbanBoard } from '@/components/projects/KanbanBoard';
 import { ListView } from '@/components/projects/ListView';
 import { ProjectSheet } from '@/components/projects/ProjectSheet';
 import { SettingsSheet } from '@/components/projects/SettingsSheet';
 import { ProfileSheet } from '@/components/auth/ProfileSheet';
-import { BoardSetupWizard } from '@/components/onboarding/BoardSetupWizard';
 import { useProjectStore } from '@/store/projectStore';
+import { useBoardStore } from '@/store/boardStore';
 import { useAuthStore } from '@/store/authStore';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
-import { supabase } from '@/lib/supabase';
-import { Project, ProjectStatus } from '@/types/project';
-import { LayoutGrid, List } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Project } from '@/types/project';
 
 const Index = () => {
+  const { boardId } = useParams();
+  const navigate = useNavigate();
   const { viewMode, setViewMode, setCurrentUser, projects, loadTeamMembers, loadProjects, subscribeToChanges } = useProjectStore();
+  const { activeBoard, loadActiveBoard, subscribeToBoards } = useBoardStore();
   const { user } = useAuthStore();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [setupWizardOpen, setSetupWizardOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [defaultStatus, setDefaultStatus] = useState<ProjectStatus | undefined>(undefined);
-  const [hasBoardSettings, setHasBoardSettings] = useState(true);
-  const [isCheckingSettings, setIsCheckingSettings] = useState(true);
+  const [defaultStatus, setDefaultStatus] = useState<string | undefined>(undefined);
 
   // Track user activity
   useActivityTracker();
 
-  // Sync current user from auth store to project store and load data
+  // Load active board based on URL parameter
   useEffect(() => {
-    if (user) {
+    if (boardId && user) {
+      console.log('Loading board:', boardId);
+      loadActiveBoard(boardId);
+    } else if (!boardId) {
+      // Redirect to boards page if no boardId
+      navigate('/boards');
+    }
+  }, [boardId, user, loadActiveBoard, navigate]);
+
+  // Sync current user and load data after board is loaded
+  useEffect(() => {
+    if (user && activeBoard) {
       setCurrentUser(user.id);
       loadTeamMembers();
       loadProjects();
     }
-  }, [user, setCurrentUser, loadTeamMembers, loadProjects]);
+  }, [user, activeBoard, setCurrentUser, loadTeamMembers, loadProjects]);
 
   // Subscribe to real-time changes
   useEffect(() => {
-    if (user) {
-      const unsubscribe = subscribeToChanges();
+    if (user && activeBoard) {
+      const unsubscribeProjects = subscribeToChanges();
+      const unsubscribeBoards = subscribeToBoards();
       return () => {
-        unsubscribe();
+        unsubscribeProjects();
+        unsubscribeBoards();
       };
     }
-  }, [user, subscribeToChanges]);
-
-  // Check if admin user needs to complete board setup
-  useEffect(() => {
-    const checkBoardSettings = async () => {
-      if (!user || user.role !== 'admin') {
-        setIsCheckingSettings(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('board_settings')
-          .select('id')
-          .limit(1)
-          .single();
-
-        if (error || !data) {
-          // No board settings found, show setup wizard
-          setHasBoardSettings(false);
-          setSetupWizardOpen(true);
-        } else {
-          setHasBoardSettings(true);
-        }
-      } catch (error) {
-        console.error('Error checking board settings:', error);
-      } finally {
-        setIsCheckingSettings(false);
-      }
-    };
-
-    checkBoardSettings();
-  }, [user]);
+  }, [user, activeBoard, subscribeToChanges, subscribeToBoards]);
 
   // Listen for openSettings event from empty state
   useEffect(() => {
@@ -106,6 +85,18 @@ const Index = () => {
     setSheetOpen(true);
   };
 
+  // Show loading while board is loading
+  if (!activeBoard) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading board...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-board">
       <Header
@@ -113,36 +104,6 @@ const Index = () => {
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenProfile={() => setProfileOpen(true)}
       />
-      
-      {/* Mobile View Toggle */}
-      <div className="sm:hidden flex items-center justify-center gap-2 py-3 bg-surface border-b border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setViewMode('kanban')}
-          className={`h-8 px-3 ${
-            viewMode === 'kanban'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground'
-          }`}
-        >
-          <LayoutGrid className="h-4 w-4 mr-2" />
-          Kanban
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setViewMode('list')}
-          className={`h-8 px-3 ${
-            viewMode === 'list'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground'
-          }`}
-        >
-          <List className="h-4 w-4 mr-2" />
-          List
-        </Button>
-      </div>
 
       {/* Main Content */}
       <main>
@@ -171,13 +132,6 @@ const Index = () => {
       <ProfileSheet
         open={profileOpen}
         onOpenChange={setProfileOpen}
-      />
-
-      {/* Board Setup Wizard */}
-      <BoardSetupWizard
-        open={setupWizardOpen}
-        onOpenChange={setSetupWizardOpen}
-        onComplete={handleSetupComplete}
       />
     </div>
   );

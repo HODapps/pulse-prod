@@ -2,8 +2,9 @@ import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Calendar, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import { Project, PRIORITY_CONFIG, STATUS_CONFIG, DEPENDENCY_CONFIG, TeamMember } from '@/types/project';
+import { Project, PRIORITY_CONFIG, DEPENDENCY_CONFIG, TeamMember } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
+import { useBoardStore } from '@/store/boardStore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
@@ -28,6 +29,7 @@ interface ListViewProps {
 
 export function ListView({ onEditProject }: ListViewProps) {
   const { projects, searchQuery, teamMembers, expandedCards, toggleCardExpand, deleteProject, currentUserId } = useProjectStore();
+  const { workflowSteps } = useBoardStore();
 
   const currentUser = teamMembers.find((m) => m.id === currentUserId);
 
@@ -150,10 +152,19 @@ export function ListView({ onEditProject }: ListViewProps) {
                           <div className="md:col-span-2 flex items-center gap-2 md:justify-start">
                             <span className="text-xs text-muted-foreground md:hidden">Status:</span>
                             <div className="flex items-center gap-1.5">
-                              <div className={cn("w-2 h-2 rounded-full", STATUS_CONFIG[project.status].dotClass)} />
-                              <span className="text-xs text-foreground">
-                                {STATUS_CONFIG[project.status].label}
-                              </span>
+                              {(() => {
+                                const step = workflowSteps.find(s => s.slug === project.status);
+                                return step ? (
+                                  <>
+                                    <div className={cn("w-2 h-2 rounded-full", step.color_dot)} />
+                                    <span className="text-xs text-foreground">
+                                      {step.name}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Unknown</span>
+                                );
+                              })()}
                             </div>
                           </div>
 

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Project, ProjectStatus, TeamMember, SubTask, UserRole } from '@/types/project';
+import { Project, TeamMember, SubTask, UserRole } from '@/types/project';
 import { supabase } from '@/lib/supabase';
+import { useBoardStore } from './boardStore';
 
 interface ProjectStore {
   projects: Project[];
@@ -9,7 +10,7 @@ interface ProjectStore {
   currentUserId: string;
   searchQuery: string;
   viewMode: 'kanban' | 'list';
-  collapsedColumns: ProjectStatus[];
+  collapsedColumns: string[];
   expandedCards: string[];
   teamTitle: string;
   isLoadingProjects: boolean;
@@ -17,12 +18,12 @@ interface ProjectStore {
   // Actions
   setSearchQuery: (query: string) => void;
   setViewMode: (mode: 'kanban' | 'list') => void;
-  toggleColumnCollapse: (status: ProjectStatus) => void;
+  toggleColumnCollapse: (status: string) => void;
   toggleCardExpand: (projectId: string) => void;
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
-  moveProject: (projectId: string, newStatus: ProjectStatus) => Promise<void>;
+  moveProject: (projectId: string, newStatus: string) => Promise<void>;
   toggleSubTask: (projectId: string, subTaskId: string) => Promise<void>;
   setCurrentUser: (userId: string) => void;
   removeTeamMember: (memberId: string) => void;
@@ -37,6 +38,7 @@ interface ProjectStore {
 function transformProjectFromDB(dbProject: any): Project {
   return {
     id: dbProject.id,
+    board_id: dbProject.board_id,
     title: dbProject.title,
     description: dbProject.description || '',
     status: dbProject.status,
@@ -55,6 +57,7 @@ function transformProjectFromDB(dbProject: any): Project {
 // Transform frontend project to database format
 function transformProjectToDB(project: Partial<Project>) {
   return {
+    board_id: project.board_id,
     title: project.title,
     description: project.description,
     status: project.status,
@@ -100,15 +103,26 @@ export const useProjectStore = create<ProjectStore>()(
       loadProjects: async () => {
         set({ isLoadingProjects: true });
         try {
+          const { activeBoard } = useBoardStore.getState();
+          if (!activeBoard) {
+            console.log('No active board, skipping project load');
+            set({ projects: [], isLoadingProjects: false });
+            return;
+          }
+
+          console.log('Loading projects for board:', activeBoard.id);
+
           const { data, error } = await supabase
             .from('projects')
             .select('*')
+            .eq('board_id', activeBoard.id)
             .order('created_at', { ascending: false });
 
           if (error) throw error;
 
           if (data) {
             const transformedProjects = data.map(transformProjectFromDB);
+            console.log('Loaded projects:', transformedProjects.length);
             set({ projects: transformedProjects });
           }
         } catch (error) {
@@ -120,7 +134,18 @@ export const useProjectStore = create<ProjectStore>()(
 
       addProject: async (projectData) => {
         try {
-          const dbProject = transformProjectToDB(projectData as Project);
+          const { activeBoard } = useBoardStore.getState();
+          if (!activeBoard) {
+            throw new Error('No active board selected');
+          }
+
+          // Ensure board_id is set
+          const projectWithBoard = {
+            ...projectData,
+            board_id: activeBoard.id,
+          };
+
+          const dbProject = transformProjectToDB(projectWithBoard as Project);
 
           const { data, error } = await supabase
             .from('projects')
@@ -287,12 +312,25 @@ export const useProjectStore = create<ProjectStore>()(
       },
 
       subscribeToChanges: () => {
-        // Subscribe to projects table changes
+        const { activeBoard } = useBoardStore.getState();
+        if (!activeBoard) {
+          console.log('No active board, skipping subscription');
+          return () => {};
+        }
+
+        console.log('Subscribing to changes for board:', activeBoard.id);
+
+        // Subscribe to projects table changes for active board only
         const projectsChannel = supabase
           .channel('projects-changes')
           .on(
             'postgres_changes',
-            { event: '*', schema: 'public', table: 'projects' },
+            {
+              event: '*',
+              schema: 'public',
+              table: 'projects',
+              filter: `board_id=eq.${activeBoard.id}`
+            },
             (payload) => {
               if (payload.eventType === 'INSERT') {
                 const newProject = transformProjectFromDB(payload.new);
