@@ -92,6 +92,18 @@ const Signup = () => {
         throw new Error('An account with this email already exists');
       }
 
+      // Avatar colors from new palette
+      const avatarColors = [
+        '196 60% 79%',  // Sky Blue
+        '152 55% 81%',  // Mint Green
+        '267 44% 81%',  // Soft Lavender
+        '10 100% 83%',  // Peachy Coral
+        '44 100% 81%',  // Butter Yellow
+        '340 100% 91%', // Blush Pink
+        '122 33% 84%',  // Sage Green
+        '226 65% 84%',  // Periwinkle
+      ];
+
       // Create auth user with metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -100,7 +112,7 @@ const Signup = () => {
           data: {
             name: data.name,
             role: inviteRole,
-            avatarColor: `bg-${['blue', 'emerald', 'purple', 'orange', 'pink', 'cyan', 'violet', 'amber', 'rose', 'teal', 'indigo'][Math.floor(Math.random() * 11)]}-400`,
+            avatarColor: avatarColors[Math.floor(Math.random() * avatarColors.length)],
           },
         },
       });

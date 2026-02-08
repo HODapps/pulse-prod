@@ -52,10 +52,12 @@ export const DEFAULT_WORKFLOW_STEPS: Omit<WorkflowStep, 'id' | 'board_id' | 'cre
 
 // Color palette for board selection
 export const BOARD_COLORS = [
-  { name: 'Green', value: '160 84% 39%' },
-  { name: 'Blue', value: '217 91% 60%' },
-  { name: 'Purple', value: '262 83% 58%' },
-  { name: 'Orange', value: '25 95% 53%' },
-  { name: 'Pink', value: '330 81% 60%' },
-  { name: 'Teal', value: '173 80% 40%' },
+  { name: 'Sky Blue', value: '196 60% 79%' },
+  { name: 'Mint Green', value: '152 55% 81%' },
+  { name: 'Soft Lavender', value: '267 44% 81%' },
+  { name: 'Peachy Coral', value: '10 100% 83%' },
+  { name: 'Butter Yellow', value: '44 100% 81%' },
+  { name: 'Blush Pink', value: '340 100% 91%' },
+  { name: 'Sage Green', value: '122 33% 84%' },
+  { name: 'Periwinkle', value: '226 65% 84%' },
 ];

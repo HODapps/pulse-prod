@@ -35,61 +35,61 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 30% 10%;
 
-    /* Primary - Green */
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 100%;
-    --primary-container: 160 60% 95%;
-    --on-primary-container: 160 84% 25%;
+    /* Primary - Sky Blue */
+    --primary: 196 60% 79%;
+    --primary-foreground: 196 60% 15%;
+    --primary-container: 196 60% 95%;
+    --on-primary-container: 196 60% 25%;
 
-    /* Secondary - Slate */
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 220 30% 20%;
+    /* Secondary - Sage Green */
+    --secondary: 122 33% 84%;
+    --secondary-foreground: 122 33% 25%;
 
-    /* Tertiary - Teal */
-    --tertiary: 175 70% 40%;
-    --tertiary-foreground: 0 0% 100%;
+    /* Tertiary - Periwinkle */
+    --tertiary: 226 65% 84%;
+    --tertiary-foreground: 226 65% 20%;
 
     /* Muted */
     --muted: 220 15% 94%;
     --muted-foreground: 220 15% 45%;
 
-    /* Accent */
-    --accent: 160 60% 95%;
-    --accent-foreground: 160 84% 30%;
+    /* Accent - Mint Green */
+    --accent: 152 55% 95%;
+    --accent-foreground: 152 55% 30%;
 
-    /* Destructive */
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    /* Destructive - Peachy Coral */
+    --destructive: 10 100% 83%;
+    --destructive-foreground: 10 100% 15%;
 
     /* Priority Colors */
-    --priority-low: 160 84% 39%;
-    --priority-low-bg: 160 70% 92%;
-    --priority-medium: 38 92% 50%;
-    --priority-medium-bg: 38 92% 92%;
-    --priority-high: 0 84% 60%;
-    --priority-high-bg: 0 84% 92%;
+    --priority-low: 122 33% 84%;        /* Sage Green */
+    --priority-low-bg: 122 33% 95%;
+    --priority-medium: 44 100% 81%;     /* Butter Yellow */
+    --priority-medium-bg: 44 100% 95%;
+    --priority-high: 267 44% 81%;       /* Soft Lavender */
+    --priority-high-bg: 267 44% 95%;
 
     /* Dependency Colors */
-    --dependency-wip: 160 84% 39%;
-    --dependency-wip-bg: 160 70% 92%;
-    --dependency-paused: 220 10% 50%;
-    --dependency-paused-bg: 220 10% 92%;
-    --dependency-blocked: 0 84% 60%;
-    --dependency-blocked-bg: 0 84% 92%;
+    --dependency-wip: 196 60% 79%;      /* Sky Blue */
+    --dependency-wip-bg: 196 60% 95%;
+    --dependency-paused: 340 100% 91%;  /* Blush Pink */
+    --dependency-paused-bg: 340 100% 97%;
+    --dependency-blocked: 10 100% 83%;  /* Peachy Coral */
+    --dependency-blocked-bg: 10 100% 95%;
 
     /* Status Colors - Dot indicators */
-    --status-backlog: 220 10% 60%;
-    --status-todo: 45 93% 47%;
-    --status-in-progress: 217 91% 60%;
-    --status-delivered: 160 84% 39%;
-    --status-audit: 30 90% 55%;
-    --status-complete: 160 84% 39%;
-    --status-archived: 220 10% 60%;
+    --status-backlog: 122 33% 84%;      /* Sage Green */
+    --status-todo: 44 100% 81%;         /* Butter Yellow */
+    --status-in-progress: 196 60% 79%;  /* Sky Blue */
+    --status-delivered: 226 65% 84%;    /* Periwinkle */
+    --status-audit: 10 100% 83%;        /* Peachy Coral */
+    --status-complete: 152 55% 81%;     /* Mint Green */
+    --status-archived: 340 100% 91%;    /* Blush Pink */
 
     /* Border & Input */
     --border: 220 15% 88%;
     --input: 220 15% 88%;
-    --ring: 160 84% 39%;
+    --ring: 196 60% 79%;                /* Sky Blue */
 
     /* Radius - M3 uses larger radii */
     --radius: 0.75rem;
@@ -107,12 +107,12 @@
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 30% 20%;
-    --sidebar-primary: 160 84% 39%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 60% 96%;
-    --sidebar-accent-foreground: 160 84% 30%;
+    --sidebar-primary: 196 60% 79%;        /* Sky Blue */
+    --sidebar-primary-foreground: 196 60% 15%;
+    --sidebar-accent: 152 55% 95%;         /* Mint Green */
+    --sidebar-accent-foreground: 152 55% 30%;
     --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-ring: 196 60% 79%;           /* Sky Blue */
   }
 
   .dark {
@@ -141,52 +141,61 @@
     --popover: 220 25% 12%;
     --popover-foreground: 220 15% 95%;
 
-    --primary: 160 70% 50%;
-    --primary-foreground: 160 84% 10%;
-    --primary-container: 160 50% 20%;
-    --on-primary-container: 160 70% 85%;
+    --primary: 196 50% 65%;
+    --primary-foreground: 196 60% 10%;
+    --primary-container: 196 40% 20%;
+    --on-primary-container: 196 50% 85%;
 
-    --secondary: 220 20% 22%;
-    --secondary-foreground: 220 15% 90%;
+    --secondary: 122 28% 25%;
+    --secondary-foreground: 122 28% 90%;
 
-    --tertiary: 175 70% 50%;
-    --tertiary-foreground: 175 70% 10%;
+    --tertiary: 226 55% 65%;
+    --tertiary-foreground: 226 65% 10%;
 
     --muted: 220 20% 18%;
     --muted-foreground: 220 15% 60%;
 
-    --accent: 160 50% 15%;
-    --accent-foreground: 160 70% 80%;
+    --accent: 152 45% 18%;
+    --accent-foreground: 152 45% 80%;
 
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 10 85% 65%;
+    --destructive-foreground: 10 100% 100%;
 
-    --priority-low: 160 70% 45%;
-    --priority-low-bg: 160 50% 15%;
-    --priority-medium: 38 85% 55%;
-    --priority-medium-bg: 38 50% 15%;
-    --priority-high: 0 75% 55%;
-    --priority-high-bg: 0 50% 15%;
+    --priority-low: 122 28% 70%;
+    --priority-low-bg: 122 25% 18%;
+    --priority-medium: 44 85% 70%;
+    --priority-medium-bg: 44 60% 18%;
+    --priority-high: 267 38% 70%;
+    --priority-high-bg: 267 30% 18%;
 
-    --dependency-wip: 160 70% 45%;
-    --dependency-wip-bg: 160 50% 15%;
-    --dependency-paused: 220 10% 60%;
-    --dependency-paused-bg: 220 10% 20%;
-    --dependency-blocked: 0 75% 55%;
-    --dependency-blocked-bg: 0 50% 15%;
+    --dependency-wip: 196 50% 65%;
+    --dependency-wip-bg: 196 40% 18%;
+    --dependency-paused: 340 80% 75%;
+    --dependency-paused-bg: 340 60% 20%;
+    --dependency-blocked: 10 85% 70%;
+    --dependency-blocked-bg: 10 65% 18%;
+
+    /* Status Colors - Dark Mode */
+    --status-backlog: 122 28% 65%;
+    --status-todo: 44 85% 70%;
+    --status-in-progress: 196 50% 65%;
+    --status-delivered: 226 55% 70%;
+    --status-audit: 10 85% 70%;
+    --status-complete: 152 45% 65%;
+    --status-archived: 340 80% 75%;
 
     --border: 220 20% 20%;
     --input: 220 20% 20%;
-    --ring: 160 70% 50%;
+    --ring: 196 50% 65%;
 
     --sidebar-background: 220 25% 10%;
     --sidebar-foreground: 220 15% 90%;
-    --sidebar-primary: 160 70% 50%;
-    --sidebar-primary-foreground: 160 84% 10%;
-    --sidebar-accent: 160 50% 15%;
-    --sidebar-accent-foreground: 160 70% 80%;
+    --sidebar-primary: 196 50% 65%;        /* Sky Blue */
+    --sidebar-primary-foreground: 196 60% 10%;
+    --sidebar-accent: 152 45% 18%;         /* Mint Green */
+    --sidebar-accent-foreground: 152 45% 80%;
     --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 160 70% 50%;
+    --sidebar-ring: 196 50% 65%;           /* Sky Blue */
   }
 }
 
