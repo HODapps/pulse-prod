@@ -50,12 +50,12 @@ export function Header({ onNewProject, onOpenSettings, onOpenProfile }: HeaderPr
     return (
       <Button
         variant="ghost"
-        size="icon"
         onClick={() => navigate('/boards')}
-        className="h-9 w-9"
+        className="h-9 gap-2 px-3 hover:bg-transparent hover:text-foreground"
         aria-label="Back to boards"
       >
         <ArrowLeft className="h-5 w-5" />
+        <span className="text-sm font-medium">Go Back</span>
       </Button>
     );
   };
