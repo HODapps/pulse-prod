@@ -61,20 +61,20 @@
     --destructive: 10 100% 83%;
     --destructive-foreground: 10 100% 15%;
 
-    /* Priority Colors */
-    --priority-low: 122 33% 84%;        /* Sage Green */
+    /* Priority Colors - WCAG AA Compliant */
+    --priority-low: 122 33% 30%;        /* Sage Green - darkened for contrast */
     --priority-low-bg: 122 33% 95%;
-    --priority-medium: 44 100% 81%;     /* Butter Yellow */
+    --priority-medium: 44 100% 28%;     /* Butter Yellow - darkened for contrast */
     --priority-medium-bg: 44 100% 95%;
-    --priority-high: 267 44% 81%;       /* Soft Lavender */
+    --priority-high: 267 44% 32%;       /* Soft Lavender - darkened for contrast */
     --priority-high-bg: 267 44% 95%;
 
-    /* Dependency Colors */
-    --dependency-wip: 196 60% 79%;      /* Sky Blue */
+    /* Dependency Colors - WCAG AA Compliant */
+    --dependency-wip: 196 60% 32%;      /* Sky Blue - darkened for contrast */
     --dependency-wip-bg: 196 60% 95%;
-    --dependency-paused: 340 100% 91%;  /* Blush Pink */
+    --dependency-paused: 340 100% 38%;  /* Blush Pink - darkened for contrast */
     --dependency-paused-bg: 340 100% 97%;
-    --dependency-blocked: 10 100% 83%;  /* Peachy Coral */
+    --dependency-blocked: 10 100% 32%;  /* Peachy Coral - darkened for contrast */
     --dependency-blocked-bg: 10 100% 95%;
 
     /* Status Colors - Dot indicators */
@@ -346,5 +346,18 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.4);
+  }
+
+  /* Screen Reader Only - for text that should be read but not visible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 }
